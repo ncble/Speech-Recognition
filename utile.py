@@ -17,6 +17,15 @@ def example():
 	y, sr = librosa.load(filename)
 	return y, sr
 
+def cut(y, threshold = 10):
+	# Silence removal
+	y_cut, index = librosa.effects.trim(y, top_db = threshold)
+	print(index)
+	y[:index[0]] = 0
+	y[index[1]:] = 0
+	return y
+	# return y_cut
+
 def plot_wave(y, sr):
 	plt.figure(figsize=(12, 4))
 	librosa.display.waveplot(y, sr=sr)
@@ -28,6 +37,20 @@ def plot_spectrogram(y, sr):
 	plt.figure(figsize=(12, 5))
 	librosa.display.specshow(Xdb, sr=sr, x_axis='time', y_axis='hz')
 	plt.show()
+
+def mfcc(y, sr, plot = False):
+	# Mel-frequency cepstral coefficients
+	# Better for speech recognition
+	S = librosa.feature.melspectrogram(y, sr=sr, n_mels=128)
+	log_S = librosa.power_to_db(S, ref=np.max)
+	if plot:
+		plt.figure(figsize=(12, 4))
+		librosa.display.specshow(log_S, sr=sr, x_axis='time', y_axis='mel')
+		plt.title('Mel power spectrogram ')
+		plt.colorbar(format='%+02.0f dB')
+		plt.tight_layout()
+		plt.show()
+	return log_S
 
 def custom_fft(y, fs):
 	T = 1.0 / fs
