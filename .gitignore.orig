@@ -1,0 +1,7 @@
+data/**
+<<<<<<< HEAD
+Lu/**
+*.pyc
+=======
+.ipynb_checkpoints/**
+>>>>>>> c824bd3208ddbd03617df22937477168ca130c1f
