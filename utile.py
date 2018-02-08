@@ -2,6 +2,7 @@
 # source activate audio
 
 ##### Package necessary #####
+import os
 import numpy as np
 import librosa
 import matplotlib.pyplot as plt
@@ -9,12 +10,12 @@ import librosa.display
 import IPython.display as ipd
 from scipy.io import wavfile
 from scipy.fftpack import fft
+from scipy import signal
 #############################
 
 
 ##### Package optional #####
-from scipy import signal # Not understand yet
-
+ 
 # For 3D spectrogram plot # Attention: only work within jupyter notebook
 # import plotly.graph_objs as go
 # import plotly.offline as py
@@ -43,14 +44,16 @@ def example2(T = 10.0, sr = 22050, freq_list = [600,400], coeffs_amplitude= None
 	
 	return final_x, sr
 
-def example3(T = 10.0, sr = 22050):
+def example3(T = 10.0, sr = 22050, freq_list = [600,400]):
 	"""
 	Inverse signal of example2(). 
 
 	Demonstration of destructive wave: example2()+example3() ~= 0
 
 	"""
-
+	assert len(freq_list) == 2, "The sum of two sinusoidal functions."
+	freq = freq_list[0]
+	freq2 = freq_list[1]
 	t = np.linspace(0, T, int(T*sr), endpoint=False) # time variable
 	z = -2.0*np.sin(np.pi*(freq+freq2)*t)*np.cos(np.pi*(freq-freq2)*t)
 
@@ -119,12 +122,12 @@ def plot_fourier(y, sr):
 	plt.show()
 
 def plot_fourier_librosa(y, sr):
-	assert 1==2, "Not finished yey !"
+	# assert 1==2, "Not finished yey !"
 	T = 1.0 / sr
 	N = y.shape[0]
 	xf = np.linspace(0.0, 1.0/(2.0*T), N//2)
-	spectre = librosa.stft(y).real
-	import ipdb; ipdb.set_trace()
+	spectre = np.abs(librosa.stft(y))
+	# import ipdb; ipdb.set_trace()
 
 
 	vals = 2.0/N * spectre[0:N//2]
@@ -188,19 +191,56 @@ def log_specgram(audio, sample_rate, window_size=20,
 	return freqs, times, np.log(spec.T.astype(np.float32) + eps)
 
 def load_audio_file(filename):
-	y, sr = librosa.load(filename, sr=22050, offset=0.0, duration=None)
-	# sample_rate, samples = wavfile.read(filename)
+	# y, sr = librosa.load(filename, sr=22050, offset=0.0, duration=None)
+	sr, y = wavfile.read(filename)
 	# y, sr = librosa.core.load(filename, sr=22050, offset=15.0, duration=5.0)
+	return y, sr
 
+def walker_example(root_dir='./data/train/audio/'):
+	for path, directories, files in os.walk('./data/train/audio/'):
+		print 'ls %r' % path
+		for directory in directories:
+			print '    d%r' % directory
+		for filename in files:
+			print '    -%r' % filename
+
+
+def generator(root_dir='./data/train/audio/', folder = None, stop_after = None):
+	"""
+	A simple generator. See: https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do
 	
 
-	return y, sr
+	"""
+	if folder is not None: # == if folder:
+		root_dir = os.path.join(root_dir, folder)
+	count = 0
+	for path, directories, files in os.walk(root_dir):
+		# print 'ls %r' % path
+		# for directory in directories:
+		# 	print('Reading directory {}...'.format(directory))
+		for filename in files:
+			if (stop_after is not None) and count >= stop_after:
+				break
+			# print '    -%r' % filename
+			yield os.path.join(path, filename)
+			count += 1
+
+
+def resize_audio(y, sr, new_sr=8000.):
+	assert type(new_sr) == float, "new_sr need to be a float (Python2)"
+	new_y = signal.resample(y, int(new_sr/sr * len(y)))
+
+	return new_y, new_sr
+
+
+
 if __name__ == "__main__":
 	print("Start...")
 
 
 
-	# y, sr = example()
+	y, sr = example()
+	plot_fourier_librosa(y, sr)
 	# y, sr = example2(freq_list = [600, 400], coeffs_amplitude= [1., 10.])
 	# plot_fourier(y,sr)
 	# plot_wave(y, sr)
@@ -218,4 +258,12 @@ if __name__ == "__main__":
 
 	# spectre = plot_fourier_librosa(y, sr)
 	# import ipdb; ipdb.set_trace()
+
+
+	# walker()
+
+	# for i in generator(folder = "no", stop_after = 10):
+	# 	print(i)
+		
+
 
