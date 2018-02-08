@@ -239,8 +239,8 @@ if __name__ == "__main__":
 
 
 
-	y, sr = example()
-	plot_fourier_librosa(y, sr)
+	# y, sr = example()
+	# plot_fourier_librosa(y, sr)
 	# y, sr = example2(freq_list = [600, 400], coeffs_amplitude= [1., 10.])
 	# plot_fourier(y,sr)
 	# plot_wave(y, sr)
@@ -260,7 +260,7 @@ if __name__ == "__main__":
 	# import ipdb; ipdb.set_trace()
 
 
-	# walker()
+	# walker_example()
 
 	# for i in generator(folder = "no", stop_after = 10):
 	# 	print(i)
