@@ -221,7 +221,7 @@ def generator(root_dir='./data/train/audio/', folder = None, stop_after = None):
 		for filename in files:
 			if (stop_after is not None) and count >= stop_after:
 				break
-			# print '    -%r' % filename
+			print '    -%r' % filename
 			yield os.path.join(path, filename)
 			count += 1
 
