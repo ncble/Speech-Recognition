@@ -1,3 +1,6 @@
 data/**
+data_reduced/**
+preprocessed/**
 Lu/**
 *.pyc
+*.ipynb_checkpoints
