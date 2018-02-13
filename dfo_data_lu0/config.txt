@@ -1,0 +1,2 @@
+Sample size = 1800 (train: 1440, test: 360).
+Initial point of x: [ 2.20411998 -4.9       ]  (real values: (gamma = 0.04, C = 10.01))
