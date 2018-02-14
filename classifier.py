@@ -25,9 +25,14 @@ class NN_Model:
 		self.data_X = np.load(filename_X)
 		self.data_Y = np.load(filename_Y)
 		self.shape = self.data_X.shape
-		self.data_X = self.data_X.reshape((self.shape[0], self.shape[1]*self.shape[2]))
-		self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data_X, self.data_Y, test_size=0.2)
-		self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train, test_size = 0.2)
+
+		self.X_train = None
+		self.X_val = None
+		self.X_test = None
+
+		self.y_train = None
+		self.y_val = None
+		self.y_test = None
 		
 		# Default parameters
 		self.activation = 'relu'  # activation function
@@ -36,6 +41,32 @@ class NN_Model:
 		self.batch_size = 10 # Batch size 
 		self.epochs = 10 # Epochs
 		self.layers = [100,100]
+
+	def preprocessing(self, split_rate = [0.8, 0.1, 0.1], cut = None):
+		print("Start preprocessing...")
+		self.data_X = self.data_X.reshape((self.shape[0], self.shape[1]*self.shape[2]))
+		self.data_X, self.data_Y = shuffle(self.data_X, self.data_Y)
+		if cut is not None:
+			self.data_X = self.data_X[:cut]
+			self.data_Y = self.data_Y[:cut]
+		
+		self.data_X = normalize(self.data_X, norm = "l2")  # TODO to check
+
+
+		self.data_Y = np.argmax(self.data_Y, axis = 1)
+
+		if len(split_rate) == 3:
+			self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data_X, self.data_Y, test_size=split_rate[-1], random_state=17)
+			validation_size = split_rate[1]/(split_rate[0] + split_rate[1])
+			self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train, test_size =validation_size, random_state=19)
+		elif len(split_rate) == 2:
+			self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data_X, self.data_Y, test_size=split_rate[-1], random_state=17)
+
+		else:
+			raise ValueError("'split_rate' should be an list/array of length 2 or 3. e.g. [0.7, 0.2, 0.1] means train/val/test set.")
+
+		print("Preprocessing done.")
+
 
 	def set_hyper_params(self, activation = 'relu', optimizer = 'adam', loss = 'categorical_crossentropy',
 						 batch_size = 30, epochs = 5, layers = [100]):
@@ -93,7 +124,7 @@ class SVM_Model(object):
 		self.y_val = None
 		self.y_test = None
 
-	def preprocessing(self, split_rate = 0.2, cut = None):
+	def preprocessing(self, split_rate = [0.8, 0.1, 0.1], cut = None):
 		print("Start preprocessing...")
 		self.data_X = self.data_X.reshape((self.shape[0], self.shape[1]*self.shape[2]))
 		self.data_X, self.data_Y = shuffle(self.data_X, self.data_Y)
@@ -112,8 +143,15 @@ class SVM_Model(object):
 
 		self.data_Y = np.argmax(self.data_Y, axis = 1)
 
-		self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data_X, self.data_Y, test_size=split_rate, random_state=17)
-		self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train, test_size = 0.2, random_state=19)
+		if len(split_rate) == 3:
+
+			self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data_X, self.data_Y, test_size=split_rate[-1], random_state=17)
+			validation_size = split_rate[1]/(split_rate[0] + split_rate[1])
+			self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train, test_size =validation_size, random_state=19)
+		elif len(split_rate) == 2:
+			self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data_X, self.data_Y, test_size=split_rate[-1], random_state=17)
+		else:
+			raise ValueError("'split_rate' should be an list/array of length 2 or 3. e.g. [0.7, 0.2, 0.1] means train/val/test set.")
 
 		print("Preprocessing done.")
 
@@ -137,7 +175,7 @@ class SVM_Model(object):
 		Loss function to be minimize usgin DFO-TR algorithm (hyperparameters' tuning). 
 		"""
 		gamma, C = self.scale2real(x, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
-
+		
 
 		clf = svm.SVC(gamma=gamma, C=C, max_iter=-1) 
 		clf.fit(self.X_train, self.y_train)
@@ -151,11 +189,12 @@ class SVM_Model(object):
 		if log_scale:
 			a, b = np.log10(bounds_old)
 			m, k = 10./(b-a), -5*(b+a)/(b-a)
-
+			
+			
 			if to_real:
-				return (x-k)/m # gamma
+				return pow(10,(x-k)/m) # gamma
 			else:
-				print(x*m + k)
+				x = np.log10(x)	
 				return x*m + k
 		else:
 			a, b = bounds_old
@@ -180,7 +219,7 @@ class SVM_Model(object):
 		C = self.linear_transform(x[1], bounds_C, log_scale = False, to_real = True)+0.000001
 		return gamma, C
 
-	def scale_x(self, x, bounds_gamma=np.array([1e-5, 10.0]), bounds_C=np.array([0, 500.0])):
+	def scale_x(self, x, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
 		# y = np.zeros(2)
 		# y[0] = np.log10(x[0])*2+5 # gamma
 		# y[1] = x[1]/100.-5.0
@@ -197,20 +236,15 @@ class SVM_Model(object):
 
 	def Fine_tune_SVM_with_DFO(self, x_initial, restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
 		# [-5,5] * [-5,5] 
-		# gamma = 10^-5 ~ 1.0 ; C = 0 ~ 500
-		# center = np.array([-2.5, 0.5])
-		# taille = np.array([2.5, 0.5])
-		# x_initial = np.zeros(2) + taille*(np.random.random(2)*2-1)
-		# x_initial = np.array([1.8943, -4])
-		# x_initial = np.zeros(2)-0.05  # -0.17 best for now !!!
-		# x_initial = np.zeros(2)-0.17  
+ 
 		sample_size = len(self.X_train) + len(self.X_val)
 
 		if not os.path.exists("./dfo_data_lu/"):
 			os.mkdir("./dfo_data_lu/")
 		with open("./dfo_data_lu/config.txt", "wb") as file:
 			message = "Sample size = {} (train: {}, test: {}).\n".format(sample_size, len(self.X_train), len(self.X_val))
-			message = message+"Initial point of x: {}  (real values: (gamma = {}, C = {}))".format(x_initial, self.scale2real(x_initial, bounds_gamma=bounds_gamma, bounds_C=bounds_C)[0], self.scale2real(x_initial, bounds_gamma=bounds_gamma, bounds_C=bounds_C)[1])
+			gamma_init , C_init = self.scale2real(x_initial, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
+			message = message+"Initial point of x: {}  (real values: (gamma = {}, C = {}))".format(x_initial, gamma_init, C_init)
 			file.write(message)
 		
 		dfo_tr.dfo_tr(lambda x: self.EvaluateSVM(x, bounds_gamma=bounds_gamma, bounds_C=bounds_C), x_initial)
@@ -231,21 +265,24 @@ if __name__ == "__main__":
 	# print("test")
 	# model.test()
 
-
+	DEBUG = False
 	from time import time
 
 	obj = SVM_Model(filename_X, filename_Y)
-	obj.preprocessing(cut = 2000, split_rate = 0.1)
-	x_initial = obj.scale_x([2., 10], bounds_gamma=np.array([1e-5, 10.0]), bounds_C=np.array([0, 500.0])) # [0.04, 10]
+	obj.preprocessing(cut = 2000, split_rate = [0.8,0.1,0.1])
+	BOUNDS_gamma = np.array([1e-2, 100.0])
+	BOUNDS_C = np.array([0, 1000.0])
+
+	x_initial = obj.scale_x([11., 82], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # [0.04, 10]
 	print(x_initial)
-	print dfo_tr.constraint_shift(x_initial)
+	if DEBUG:
+		print(dfo_tr.constraint_shift(x_initial))
+		print(obj.scale2real(dfo_tr.constraint_shift(x_initial), bounds_gamma=np.array([1e-5, 10.0]), bounds_C=np.array([0, 500.0])))
+		print(obj.scale2real(x_initial, bounds_gamma=np.array([1e-5, 10.0]), bounds_C=np.array([0, 500.0])))
 
-	print(obj.scale2real(dfo_tr.constraint_shift(x_initial), bounds_gamma=np.array([1e-5, 10.0]), bounds_C=np.array([0, 500.0])))
-	# print(obj.scale2real(x_initial, bounds_gamma=np.array([1e-5, 10.0]), bounds_C=np.array([0, 500.0])))
 	st = time()
-	# obj.Fine_tune_SVM_with_DFO(x_initial, bounds_gamma=np.array([1e-5, 10.0]), bounds_C=np.array([0, 500.0]))
-	# print("Loss: {}".format(obj.EvaluateSVM(x_initial)))
-
+	# obj.Fine_tune_SVM_with_DFO(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
 	print("Total elapsed time {}".format(time()-st))
 
 
