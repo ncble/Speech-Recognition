@@ -34,6 +34,7 @@ def preprocessing(filename, fct = mel_spec):
         - fct: type of preprocessing (default : mel_spec)
     '''
     y, sr = librosa.load(filename)
+    y = librosa.effects.trim(y, top_db=15)[0]
     return fct(y, sr)
 
 def get_label(filename):
