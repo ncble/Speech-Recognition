@@ -1,6 +1,7 @@
 # _*_ coding: utf-8 _*_
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 # from keras.models import Sequential, Model
 # from keras.layers import Dense, Activation, Input
@@ -15,7 +16,18 @@ from sklearn import svm
 from sklearn.preprocessing import normalize
 
 ##### Hyperparameters tuing solvers ####
-from DFO_src import dfo_tr
+
+try:
+	from DFO_src import dfo_tr
+	import dill # To read DFO's result # pip install dill
+except:
+	print("Please install dill (pip install dill)")
+try:
+	import cma
+except:
+	print("Please install CMA (pip install CMA)")
+
+
 
 class NN_Model:
 	def __init__(self, filename_X, filename_Y):
@@ -105,6 +117,29 @@ class NN_Model:
 			return 0
 
 
+class Objective_Function():
+	def __init__(self, fun, isBO = False, save_to=None):
+		self.fun = fun
+		self.history_f = []
+		self.fbest = np.inf
+		self.history_fbest = []
+		self.isBO = isBO
+		
+	def __call__(self, x):
+		if self.isBO:
+			x = np.array(x)
+		value = self.fun(x)
+		if save_to is not None:
+			assert len(save_to) == 2
+			np.savetxt(open(save_to[0], "ab"), x.reshape(1,-1))
+			np.savetxt(open(save_to[1], "ab"), np.array(value).reshape(1,1))
+
+		# self.history_f.append(value)
+		# self.fbest = min(self.fbest, value)
+		# self.history_fbest.append(self.fbest)
+		return value
+
+
 class SVM_Model(object):
 	"""docstring for SVM_Model"""
 	def __init__(self, filename_X, filename_Y):
@@ -126,6 +161,7 @@ class SVM_Model(object):
 
 	def preprocessing(self, split_rate = [0.8, 0.1, 0.1], cut = None):
 		print("Start preprocessing...")
+		assert sum(split_rate) == 1.0, "Sum of split rate should be 1.0 !"
 		self.data_X = self.data_X.reshape((self.shape[0], self.shape[1]*self.shape[2]))
 		self.data_X, self.data_Y = shuffle(self.data_X, self.data_Y)
 		if cut is not None:
@@ -155,41 +191,45 @@ class SVM_Model(object):
 
 		print("Preprocessing done.")
 
-	def EvaluateSVM(self, x, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
+	def EvaluateSVM(self, x, evaluate_on = "test", bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
 
-		###### Linear kernel  ######
-		# clf = svm.LinearSVC(C=1.) # 0.9122 with whole dataset !!
-		
-		###### Gaussian kernel  ######
-		### The first value is "accuracy on 7000 (10% of data): 6000 train 1000 test" 
-		### The second value is "accuracy on whole dataset: 60000 train 10000 test" 
-
-		# clf = svm.SVC(gamma=0.0413, C=78.22,max_iter=-1) # 0.973, 0.9851 with whole dataset !! 
-		# clf = svm.SVC(gamma=0.024154, C=632.649,max_iter=-1) # 0.971, 0.9848 with whole dataset !! 
-		# clf = svm.SVC(gamma=0.02845, C=521.59,max_iter=-1) # 0.967, 0.985 0. with whole dataset !!  
-		# clf = svm.SVC(gamma=0.028, C=100,max_iter=-1) # 0.976, 0.9884 with whole dataset !!  
-		# clf = svm.SVC(gamma=0.024, C=100,max_iter=-1) # 0.963, 0.9864 with whole dataset !!  
-		# clf = svm.SVC(gamma=0.04, C=70,max_iter=-1) # 0.966, 0.987 with whole dataset !! 
-		
 		"""
-		Loss function to be minimize usgin DFO-TR algorithm (hyperparameters' tuning). 
+		Loss function to be minimize using DFO-TR algorithm (hyperparameters' tuning). 
 		"""
 		gamma, C = self.scale2real(x, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
 		
 
 		clf = svm.SVC(gamma=gamma, C=C, max_iter=-1) 
 		clf.fit(self.X_train, self.y_train)
-		Loss_val = -clf.score(self.X_val, self.y_val)
-		print("Loss on the validation set: {} with (gamma: {}, C: {}).".format(Loss_val, gamma, C))
-		return Loss_val
+
+		if evaluate_on == "val":
+			Loss_val = -clf.score(self.X_val, self.y_val)
+			print("Loss on the validation set: {} with (gamma: {}, C: {}).".format(Loss_val, gamma, C))
+			return Loss_val
+		elif evaluate_on == "test":
+			Loss_test = -clf.score(self.X_test, self.y_test)
+			print("Loss on the test set: {} with (gamma: {}, C: {}).".format(Loss_test, gamma, C))
+			return Loss_test
+		else:
+			raise ValueError("'evaluate_on' should be 'test' or 'val'.")
+		
 
 	def linear_transform(self, x, bounds_old, log_scale = False, to_real = False):
-		# x is a scalar
+		"""
+		Transform a scalar to another search space.
+
+		Input: 
+			x: a scalar
+			bounds_old: list or np.array of form [a, b]
+
+		return:
+			scaled x
+		"""
+		# 
 
 		if log_scale:
 			a, b = np.log10(bounds_old)
 			m, k = 10./(b-a), -5*(b+a)/(b-a)
-			
 			
 			if to_real:
 				return pow(10,(x-k)/m) # gamma
@@ -206,50 +246,87 @@ class SVM_Model(object):
 
 
 	def scale2real(self, x, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
+		"""
+		Input:
+			x: a length 2 np.array or list in the searching space [-5, 5]^2
+		return:
+			gamma, C
+		"""
 		x = x.ravel()
-		# gamma = pow(10, (x[0]-5)/2.)  # x[0] \in [-5,5]  # gamma = 1e-5 ~ 0.
-		# C = (x[1]+5.0001)*100 # x[1] \in [-5,5] # C = 0. ~ 1000.
-
-		# a, b = np.log10(bounds_gamma)
-		# m, k = 10./(b-a), -5*(b+a)/(b-a)
-		# gamma = (x[0]-k)/m
-		# C = (x[1]-k)/m +0.00001
-
 		gamma = self.linear_transform(x[0], bounds_gamma, log_scale = True, to_real = True)
 		C = self.linear_transform(x[1], bounds_C, log_scale = False, to_real = True)+0.000001
 		return gamma, C
 
 	def scale_x(self, x, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
-		# y = np.zeros(2)
-		# y[0] = np.log10(x[0])*2+5 # gamma
-		# y[1] = x[1]/100.-5.0
-
-		# a, b = np.log10(bounds_gamma)
-		# m, k = 10./(b-a), -5*(b+a)/(b-a)
+		"""
+		Input:
+			x: a length 2 np.array (gamma, C)
+		return:
+			(y[0], y[1]) in the searching space [-5, 5]^2
+		"""
 
 		y = np.zeros(2)
-		# y[0] = x[0]*m + k 
-		# y[1] = x[1]*m + k
+
 		y[0] = self.linear_transform(x[0], bounds_gamma, log_scale = True, to_real = False)
 		y[1] = self.linear_transform(x[1], bounds_C, log_scale = False, to_real = False)
 		return y
 
-	def Fine_tune_SVM_with_DFO(self, x_initial, restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
-		# [-5,5] * [-5,5] 
- 
-		sample_size = len(self.X_train) + len(self.X_val)
+	def Fine_tune_SVM_with_DFO(self, x_initial, evaluate_on = "test", restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
+		"""
+		Searching space: [-5,5] * [-5,5] 
 
-		if not os.path.exists("./dfo_data_lu/"):
-			os.mkdir("./dfo_data_lu/")
-		with open("./dfo_data_lu/config.txt", "wb") as file:
-			message = "Sample size = {} (train: {}, test: {}).\n".format(sample_size, len(self.X_train), len(self.X_val))
+
+		"""
+		
+		if evaluate_on == "test":
+			eval_set = self.X_test
+		elif evaluate_on == "val":
+			eval_set = self.X_val
+		else:
+			raise ValueError("'evaluate_on' should be 'test' or 'val'.")
+
+		sample_size = len(self.X_train) + len(eval_set)
+
+		if not os.path.exists("./hp_tuning_data/dfo_data_lu/"):
+			os.makedirs("./hp_tuning_data/dfo_data_lu/")
+		with open("./hp_tuning_data/dfo_data_lu/config.txt", "wb") as file:
+			message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
 			gamma_init , C_init = self.scale2real(x_initial, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
 			message = message+"Initial point of x: {}  (real values: (gamma = {}, C = {}))".format(x_initial, gamma_init, C_init)
 			file.write(message)
 		
-		dfo_tr.dfo_tr(lambda x: self.EvaluateSVM(x, bounds_gamma=bounds_gamma, bounds_C=bounds_C), x_initial)
+		dfo_tr.dfo_tr(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), x_initial)
 
 
+	def Fine_tune_SVM_with_CMA_ES(self, x_initial, sigma0, evaluate_on = "test", restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
+		"""
+		Searching space: ???
+		
+		"""
+		save_path = ["./hp_tuning_data/cma_data/SVM.txt", "./hp_tuning_data/cma_data/SVM_value.txt"] 
+		bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path)
+
+		if evaluate_on == "test":
+			eval_set = self.X_test
+		elif evaluate_on == "val":
+			eval_set = self.X_val
+		else:
+			raise ValueError("'evaluate_on' should be 'test' or 'val'.")
+
+		sample_size = len(self.X_train) + len(eval_set)
+		
+
+		if not os.path.exists("./hp_tuning_data/cma_data/"):
+			os.makedirs("./hp_tuning_data/cma_data/")
+		with open("./hp_tuning_data/cma_data/config.txt", "wb") as file:
+			message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
+			gamma_init , C_init = self.scale2real(x_initial, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
+			message = message+"Initial point of x: {}  (real values: (gamma = {}, C = {}))".format(x_initial, gamma_init, C_init)
+			file.write(message)
+		
+		cma.fmin(bb_fun, x_initial, sigma0)
+		cma.plot()
+		plt.savefig("./hp_tuning_data/cma_data/cma_plot.png")
 
 
 if __name__ == "__main__":
@@ -269,28 +346,86 @@ if __name__ == "__main__":
 	from time import time
 
 	obj = SVM_Model(filename_X, filename_Y)
-	obj.preprocessing(cut = 2000, split_rate = [0.8,0.1,0.1])
+	# obj.preprocessing(cut = 2000, split_rate = [0.8, 0.1, 0.1]) # For fine-tuning purpose
+	obj.preprocessing(cut = 500, split_rate = [0.7, 0.3]) # For fine-tuning purpose
+	# obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
 	BOUNDS_gamma = np.array([1e-2, 100.0])
 	BOUNDS_C = np.array([0, 1000.0])
 
-	x_initial = obj.scale_x([11., 82], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # [0.04, 10]
+	x_initial = obj.scale_x([22.6, 31.5], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # [0.04, 10]
 	print(x_initial)
 	if DEBUG:
 		print(dfo_tr.constraint_shift(x_initial))
-		print(obj.scale2real(dfo_tr.constraint_shift(x_initial), bounds_gamma=np.array([1e-5, 10.0]), bounds_C=np.array([0, 500.0])))
-		print(obj.scale2real(x_initial, bounds_gamma=np.array([1e-5, 10.0]), bounds_C=np.array([0, 500.0])))
+		print(obj.scale2real(dfo_tr.constraint_shift(x_initial), bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))
+		print(obj.scale2real(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))
 
 	st = time()
 	# obj.Fine_tune_SVM_with_DFO(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
+	# print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
+	# obj.Fine_tune_SVM_with_CMA_ES(x_initial, 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	print("Total elapsed time {}".format(time()-st))
 
 
 	#np.isfinite(obj.X_train).any()
-
-
 	# First experiment:
 	# gamma = 0.04, C = 10
 	# Loss: -0.302272727273
 	# Total elapsed time 88.071696043
+
+	def draw_surface_level(fun, centre = np.zeros(2), taille = 1.0, message = None):
+
+		plt.figure(figsize=(5, 3))
+		axes = plt.gca()
+		if message:
+			plt.title(message)
+		x_min, y_min = (centre - taille)#[0,0], (centre - taille)[0,1]  #X[:, 0].min()
+		x_max, y_max = (centre + taille)#[0,0], (centre + taille)[0,1]     #X[:, 0].max()
+		
+		axes.set_xlim([x_min,x_max])
+		axes.set_ylim([y_min,y_max])
+		XX, YY = np.mgrid[x_min:x_max:200j, y_min:y_max:200j]
+
+		Z = fun(np.c_[XX.ravel(), YY.ravel()])
+
+		# Put the result into a color plot
+		Z = Z.reshape(XX.shape)
+		plt.pcolormesh(XX, YY, Z, cmap = plt.cm.jet)
+		# CS = plt.contour(XX, YY, Z, cmap = plt.cm.jet)
+		# plt.clabel(CS, fmt='%2.1f', colors='b', fontsize=14)
+		plt.show()
+
+	def slope(x):
+
+		tengent = -5
+		# return np.sum(tengent*x, axis = 1)
+		return np.sum(tengent*x)
+
+	# cma.CMAOptions()
+	# draw_surface_level(slope)
+
+	CMA_cls = cma.constraints_handler.BoundaryHandlerBase([np.array([-5,-5]), np.array([5,6])])
+	print(CMA_cls)
+	cma.fmin(cma.ff.sphere, np.ones(2), 0.1, options = {"BoundaryHandler":None})
+	
+	# print CMA_cls.has_bounds()
+	print CMA_cls.get_bounds('lower', 2)
+	print CMA_cls.get_bounds('upper', 2)
+	# import ipdb; ipdb.set_trace()
+	# cma.plot()
+	plt.savefig("./test_cma_plot.png")
+
+	# with open("./dfo_data_lu/result.txt", "rb") as file:
+	# 	res = dill.load(file)
+	# print("Argmin of function:")
+	# print(res.x)
+	# print(obj.scale2real(res.x, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))
+	# print("Best value of function (minimum):")
+	# print(res.fun)
+	# print("Iteration of algorithm:")
+	# print(res.iteration)
+	# print(res.iter_suc)
+	# print("Number of function evaluation:")
+	# print(res.func_eval)
+	# print("Final delta:")
+	# print(res.delta)
 
