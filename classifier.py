@@ -118,21 +118,31 @@ class NN_Model:
 
 
 class Objective_Function():
+	"""
+	This wrapper aims to save all the points/values evaluated by solver.
+
+	Input:
+		fun: Black-box function
+		save_to: [path_to_points, path_to_values]  e.g. ["./SVM_points.txt", "./SVM_values.txt"]
+
+	"""
+
 	def __init__(self, fun, isBO = False, save_to=None):
 		self.fun = fun
 		self.history_f = []
 		self.fbest = np.inf
 		self.history_fbest = []
 		self.isBO = isBO
+		self.save_to = save_to
 		
 	def __call__(self, x):
 		if self.isBO:
 			x = np.array(x)
 		value = self.fun(x)
-		if save_to is not None:
-			assert len(save_to) == 2
-			np.savetxt(open(save_to[0], "ab"), x.reshape(1,-1))
-			np.savetxt(open(save_to[1], "ab"), np.array(value).reshape(1,1))
+		if self.save_to is not None:
+			assert len(self.save_to) == 2
+			np.savetxt(open(self.save_to[0], "ab"), x.reshape(1,-1))
+			np.savetxt(open(self.save_to[1], "ab"), np.array(value).reshape(1,1))
 
 		# self.history_f.append(value)
 		# self.fbest = min(self.fbest, value)
@@ -305,8 +315,8 @@ class SVM_Model(object):
 		TODO 
 
 		"""
-		assert 1 == 2, "Not implemented error ! (Not done yet) "
 		
+
 		save_path = ["./hp_tuning_data/cma_data/SVM.txt", "./hp_tuning_data/cma_data/SVM_value.txt"] 
 		bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path)
 
@@ -328,9 +338,12 @@ class SVM_Model(object):
 			message = message+"Initial point of x: {}  (real values: (gamma = {}, C = {}))".format(x_initial, gamma_init, C_init)
 			file.write(message)
 		
-		cma.fmin(bb_fun, x_initial, sigma0)
+		res = cma.fmin(bb_fun, x_initial, sigma0, options={'bounds': [[-5.000001,-5.000001], [5,5]]})
 		cma.plot()
 		plt.savefig("./hp_tuning_data/cma_data/cma_plot.png")
+		print("="*50)
+		print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res[0]), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
+		print("CMA all done.")
 
 
 if __name__ == "__main__":
@@ -348,15 +361,19 @@ if __name__ == "__main__":
 
 	DEBUG = False
 	from time import time
-
-	obj = SVM_Model(filename_X, filename_Y)
-	# obj.preprocessing(cut = 2000, split_rate = [0.8, 0.1, 0.1]) # For fine-tuning purpose
-	obj.preprocessing(cut = 500, split_rate = [0.7, 0.3]) # For fine-tuning purpose
-	# obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
 	BOUNDS_gamma = np.array([1e-2, 100.0])
 	BOUNDS_C = np.array([0, 1000.0])
 
-	x_initial = obj.scale_x([22.6, 31.5], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # [0.04, 10]
+	obj = SVM_Model(filename_X, filename_Y)
+	# obj.preprocessing(cut = 2000, split_rate = [0.8, 0.2]) # For fine-tuning purpose
+	obj.preprocessing(cut = 1000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
+	# obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
+	
+
+	# x_initial = obj.scale_x([22.6, 31.5], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 80%, 79%  (dfo_data_lu)
+	# x_initial = obj.scale_x([10.1637, 825.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 77.45%  (cma_data0)
+	# x_initial = obj.scale_x([7.77, 453.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 76%  (cma_data1)
+	x_initial = obj.scale_x([40., 100.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 
 	print(x_initial)
 	if DEBUG:
 		print(dfo_tr.constraint_shift(x_initial))
@@ -365,19 +382,20 @@ if __name__ == "__main__":
 
 	st = time()
 	# obj.Fine_tune_SVM_with_DFO(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	# print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
 	# obj.Fine_tune_SVM_with_CMA_ES(x_initial, 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	# print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
 	print("Total elapsed time {}".format(time()-st))
 
-
+	
 	#np.isfinite(obj.X_train).any()
 	# First experiment:
 	# gamma = 0.04, C = 10
 	# Loss: -0.302272727273
 	# Total elapsed time 88.071696043
 
-
-
+	##### Transform a points to real searching space [gamma, C] ######
+	# print(obj.scale2real(np.array([2.51762961118158301, 3.252057151340544294]), bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))
+	# print(obj.scale2real(np.array([2.226888578906029981, -4.692889484117070964e-01]), bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))
 	
 
 

@@ -41,12 +41,13 @@ if __name__ == "__main__":
 	# draw_surface_level(slope)
 	# CMA_cls = cma.constraints_handler.BoundaryHandlerBase([np.array([-5,-5]), np.array([5,5])])
 	# cma.fmin(cma.ff.sphere, np.ones(2), 0.1, options = {"BoundaryHandler":None})
-	plt.figure()
-	bounded_sphere = ft.ComposedFunction([cma.ff.sphere, BoundTransform([[], 5 * [-1] + [np.inf]]).transform]) # 
-	cma.fmin(bounded_sphere, 6 * [-2], 0.5)
+	
+	# bounded_sphere = ft.ComposedFunction([cma.ff.sphere, BoundTransform([[], 5 * [-1] + [np.inf]]).transform]) # 
+	res = cma.fmin(slope, np.ones(2), 0.5, options={'bounds': [[-5,-5], [5,5]]}) #'BoundaryHandler': cma.s.ch.BoundTransform, 
 	cma.plot()
 	plt.savefig("./test_cma_plot.png")
-
+	print(res[0])
+	# import ipdb; ipdb.set_trace()
 
 	# print CMA_cls.get_bounds('lower', 2)
 	# print CMA_cls.get_bounds('upper', 2)
