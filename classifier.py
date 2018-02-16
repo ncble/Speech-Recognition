@@ -16,6 +16,9 @@ from sklearn import svm
 from sklearn.preprocessing import normalize
 
 ##### Hyperparameters tuing solvers ####
+from PRS import PRS
+from skopt import gp_minimize
+
 
 try:
 	from DFO_src import dfo_tr
@@ -344,7 +347,57 @@ class SVM_Model(object):
 		print("="*50)
 		print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res[0]), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
 		print("CMA all done.")
+        
+	def Fine_tune_SVM_with_PRS(self, n_evals = 100, evaluate_on = "test", restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
+		save_path = ["./hp_tuning_data/prs_data/SVM.txt", "./hp_tuning_data/prs_data/SVM_value.txt"] 
+		bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path)
 
+		if evaluate_on == "test":
+			eval_set = self.X_test
+		elif evaluate_on == "val":
+			eval_set = self.X_val
+		else:
+			raise ValueError("'evaluate_on' should be 'test' or 'val'.")
+
+		sample_size = len(self.X_train) + len(eval_set)
+		
+
+		if not os.path.exists("./hp_tuning_data/prs_data/"):
+			os.makedirs("./hp_tuning_data/prs_data/")
+		with open("./hp_tuning_data/prs_data/config.txt", "wb") as file:
+			message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
+			file.write(message)
+		
+		res = PRS(bb_fun, 2, n_evals, bounds = [-5,5])
+		print("="*50)
+		print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res[0]), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
+		print("PRS all done.")
+	
+	def Fine_tune_SVM_with_BO(self, n_calls = 20, evaluate_on = "test", restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
+		save_path = ["./hp_tuning_data/BO_data/SVM.txt", "./hp_tuning_data/BO_data/SVM_value.txt"] 
+		bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path, isBO = True)
+
+		if evaluate_on == "test":
+			eval_set = self.X_test
+		elif evaluate_on == "val":
+			eval_set = self.X_val
+		else:
+			raise ValueError("'evaluate_on' should be 'test' or 'val'.")
+
+		sample_size = len(self.X_train) + len(eval_set)
+		
+
+		if not os.path.exists("./hp_tuning_data/BO_data/"):
+			os.makedirs("./hp_tuning_data/BO_data/")
+		with open("./hp_tuning_data/BO_data/config.txt", "wb") as file:
+			message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
+			file.write(message)
+		
+		res = gp_minimize(bb_fun, [(-5,5)]*2, n_calls = n_calls)
+		print("="*50)
+		print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res.x), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
+		print("Bayesian optimization all done.")
+    
 
 if __name__ == "__main__":
 	print("Start reading")
@@ -366,14 +419,15 @@ if __name__ == "__main__":
 
 	obj = SVM_Model(filename_X, filename_Y)
 	# obj.preprocessing(cut = 2000, split_rate = [0.8, 0.2]) # For fine-tuning purpose
-	obj.preprocessing(cut = 1000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
-	# obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
+	#obj.preprocessing(cut = 1000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
+	obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
 	
 
 	# x_initial = obj.scale_x([22.6, 31.5], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 80%, 79%  (dfo_data_lu)
 	# x_initial = obj.scale_x([10.1637, 825.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 77.45%  (cma_data0)
 	# x_initial = obj.scale_x([7.77, 453.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 76%  (cma_data1)
-	x_initial = obj.scale_x([40., 100.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 
+	# x_initial = obj.scale_x([40., 100.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 
+	# x_initial = obj.scale_x([6.3, 400.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # improved preprocessing (cut) 87% !!!
 	print(x_initial)
 	if DEBUG:
 		print(dfo_tr.constraint_shift(x_initial))
@@ -381,9 +435,11 @@ if __name__ == "__main__":
 		print(obj.scale2real(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))
 
 	st = time()
+	# obj.Fine_tune_SVM_with_PRS(bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	#obj.Fine_tune_SVM_with_BO(bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_tune_SVM_with_DFO(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	# obj.Fine_tune_SVM_with_CMA_ES(x_initial, 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	# print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
+	#obj.Fine_tune_SVM_with_CMA_ES(x_initial, 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
 	print("Total elapsed time {}".format(time()-st))
 
 	
