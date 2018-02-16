@@ -302,7 +302,11 @@ class SVM_Model(object):
 		"""
 		Searching space: ???
 		
+		TODO 
+
 		"""
+		assert 1 == 2, "Not implemented error ! (Not done yet) "
+		
 		save_path = ["./hp_tuning_data/cma_data/SVM.txt", "./hp_tuning_data/cma_data/SVM_value.txt"] 
 		bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path)
 
@@ -372,48 +376,13 @@ if __name__ == "__main__":
 	# Loss: -0.302272727273
 	# Total elapsed time 88.071696043
 
-	def draw_surface_level(fun, centre = np.zeros(2), taille = 1.0, message = None):
 
-		plt.figure(figsize=(5, 3))
-		axes = plt.gca()
-		if message:
-			plt.title(message)
-		x_min, y_min = (centre - taille)#[0,0], (centre - taille)[0,1]  #X[:, 0].min()
-		x_max, y_max = (centre + taille)#[0,0], (centre + taille)[0,1]     #X[:, 0].max()
-		
-		axes.set_xlim([x_min,x_max])
-		axes.set_ylim([y_min,y_max])
-		XX, YY = np.mgrid[x_min:x_max:200j, y_min:y_max:200j]
 
-		Z = fun(np.c_[XX.ravel(), YY.ravel()])
-
-		# Put the result into a color plot
-		Z = Z.reshape(XX.shape)
-		plt.pcolormesh(XX, YY, Z, cmap = plt.cm.jet)
-		# CS = plt.contour(XX, YY, Z, cmap = plt.cm.jet)
-		# plt.clabel(CS, fmt='%2.1f', colors='b', fontsize=14)
-		plt.show()
-
-	def slope(x):
-
-		tengent = -5
-		# return np.sum(tengent*x, axis = 1)
-		return np.sum(tengent*x)
-
-	# cma.CMAOptions()
-	# draw_surface_level(slope)
-
-	CMA_cls = cma.constraints_handler.BoundaryHandlerBase([np.array([-5,-5]), np.array([5,6])])
-	print(CMA_cls)
-	cma.fmin(cma.ff.sphere, np.ones(2), 0.1, options = {"BoundaryHandler":None})
 	
-	# print CMA_cls.has_bounds()
-	print CMA_cls.get_bounds('lower', 2)
-	print CMA_cls.get_bounds('upper', 2)
-	# import ipdb; ipdb.set_trace()
-	# cma.plot()
-	plt.savefig("./test_cma_plot.png")
 
+
+	########## Read DFO fine-tuning result ############
+	# Please install dill by (pip install dill)
 	# with open("./dfo_data_lu/result.txt", "rb") as file:
 	# 	res = dill.load(file)
 	# print("Argmin of function:")
