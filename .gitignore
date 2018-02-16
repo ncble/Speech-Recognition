@@ -4,3 +4,4 @@ preprocessed/**
 Lu/**
 *.pyc
 *.ipynb_checkpoints
+*.dat
