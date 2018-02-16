@@ -427,7 +427,7 @@ if __name__ == "__main__":
 	# x_initial = obj.scale_x([10.1637, 825.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 77.45%  (cma_data0)
 	# x_initial = obj.scale_x([7.77, 453.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 76%  (cma_data1)
 	# x_initial = obj.scale_x([40., 100.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 
-	# x_initial = obj.scale_x([6.3, 400.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # improved preprocessing (cut) 87% !!!
+	x_initial = obj.scale_x([6.3, 400.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # improved preprocessing (cut) 87% !!!
 	print(x_initial)
 	if DEBUG:
 		print(dfo_tr.constraint_shift(x_initial))
