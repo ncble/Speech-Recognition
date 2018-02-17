@@ -7,9 +7,10 @@ import cma
 from cma.constraints_handler import BoundTransform
 from cma import fitness_transformations as ft
 
-if __name__ == "__main__":
 
-	def draw_surface_level(fun, centre = np.zeros(2), taille = 1.0, message = None):
+from sklearn.preprocessing import normalize
+
+def draw_surface_level(fun, centre = np.zeros(2), taille = 1.0, message = None):
 
 		plt.figure(figsize=(5, 3))
 		axes = plt.gca()
@@ -31,11 +32,17 @@ if __name__ == "__main__":
 		# plt.clabel(CS, fmt='%2.1f', colors='b', fontsize=14)
 		plt.show()
 
-	def slope(x):
+def slope(x):
 
-		tengent = -5
-		# return np.sum(tengent*x, axis = 1)
-		return np.sum(tengent*x)
+	tengent = -5
+	# return np.sum(tengent*x, axis = 1)
+	return np.sum(tengent*x)
+if __name__ == "__main__":
+	filename_X = "preprocessed/input.npy"
+	filename_Y = "preprocessed/output.npy"
+	data_X = np.load(filename_X)
+	sample = len(data_X)
+	data_X = data_X.reshape(sample, -1)
 
 	# cma.CMAOptions()
 	# draw_surface_level(slope)
@@ -43,12 +50,21 @@ if __name__ == "__main__":
 	# cma.fmin(cma.ff.sphere, np.ones(2), 0.1, options = {"BoundaryHandler":None})
 	
 	# bounded_sphere = ft.ComposedFunction([cma.ff.sphere, BoundTransform([[], 5 * [-1] + [np.inf]]).transform]) # 
-	res = cma.fmin(slope, np.ones(2), 0.5, options={'bounds': [[-5,-5], [5,5]]}) #'BoundaryHandler': cma.s.ch.BoundTransform, 
-	cma.plot()
-	plt.savefig("./test_cma_plot.png")
-	print(res[0])
-	# import ipdb; ipdb.set_trace()
+	
+
+
+	######## Succesful #############
+	# res = cma.fmin(slope, np.ones(2), 0.5, options={'bounds': [[-5,-5], [5,5]]}) #'BoundaryHandler': cma.s.ch.BoundTransform, 
+	# cma.plot()
+	# plt.savefig("./test_cma_plot.png")
+	# print(res[0])
+	################################
+	
 
 	# print CMA_cls.get_bounds('lower', 2)
 	# print CMA_cls.get_bounds('upper', 2)
-	# 
+
+
+	data_X = normalize(data_X, norm = "l2")
+
+	import ipdb; ipdb.set_trace()

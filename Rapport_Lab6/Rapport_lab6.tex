@@ -1,0 +1,136 @@
+\documentclass[12 pt, a4paper]{article}
+
+
+%\usepackage[titlepage]{polytechnique}
+\usepackage{polytechnique}
+
+\usepackage{graphicx}		% inclure des graphiques
+\usepackage{hyperref}			% lien hypertexte
+\usepackage{array}   % pour faire des tableaux
+\usepackage{pict2e}  % pour faire des figures géomètriques
+\usepackage[utf8]{inputenc}		% reconnaître les caractères spéciaux
+\usepackage[T1]{fontenc}		% polices de caractère
+\usepackage[french]{babel}	% utiliser les régles d'affichage françaises
+\usepackage{lmodern}
+
+% Package Lu
+\usepackage[centertags]{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\usepackage{pstricks-add}
+	
+% pour les notes de bas de page
+\AddThinSpaceBeforeFootnotes % à insérer si on utilise \usepackage[french]{babel}
+\FrenchFootnotes % à insérer si on utilise \usepackage[french]{babel}
+
+% Section counter ???
+% \setcounter{section}{1}
+% \renewcommand\thesection{\arabic {section}}
+% \renewcommand\thesection{\Roman {section}}
+
+
+
+\title[Data camp 2018]{Data camp Lab6}
+\subtitle{Hyperparameters tuning on SVM models}
+\author{Lu \textsc{Lin}, Olivier \textsc{Coudray}}
+\date{16 février 2018}
+
+\begin{document}
+
+\maketitle
+
+
+
+
+\begin{abstract}
+Ce dossier contient un sous-dossiers nommé \texttt{DFO\_src} et ....
+
+\end{abstract}
+
+\section{Introduction}
+Dans ce rapport nous allons tester quatre algorithmes d'optimisation de type boîte-noire pour calibrer les hyperparamètres de la machine SVM pour notre problème de classification. Ce sont le \textit{Random Search}, le \textit{BO (Optimisation bayésienne)} de \texttt{scikit-learn}, le \textit{CMA-ES} et le \textit{DFO-TR}. L'objectif est de tester la performance de ces optimisers das un cas pratique, donc on n'espère pas que cela résout directement notre projet. Nous comparons les résultats obtenus avec le fameux problème de classification MNIST (Lab2 du Data Camp) en tenant compte les spécificités du SVM. Ici, nous considérons uniquement la machine SVC avec le noyau gaussien de \texttt{scikit-learn}. Ainsi, la dimension de l'espace de recherche est 2 ($\gamma$ et $C$). Sachant que ces deux paramètres sont strictement positives d'échelle différente, nous faisons une transformation (logarithmique/affine)\footnote{Comme ce qu'on faisait pour le Lab2.} pour ramener l'espace de recherche à $[-5, 5]^{D}$\footnote{$D$ étant la dimension de l'espace. Ici $D=2$.} comme celui de la plate-forme COCO. Nous montrons que cette transformation revient à diminuer le conditionnement (condition number $\kappa$) et rendre les solvers efficaces. Il est à remarquer que, sans cela, certains solvers seront incapable de fonctionner.
+
+
+\section{Description des données}
+\subsection{MNIST}
+Il s'agit d'un problème de classification de 10 classes (les chiffres manuscrit de 0 à 9) avec les 70000 images de taille $28\cdot 28$ (dont 60000 pour le train set et 10000 pour le test set).
+
+\subsection{Speech recognition}
+Nous avons réduit notre problème de classification original de Kaggle de 30 classes à 11 classes. Il s'agit de classifier les mots à partir du son prononcé par un humain de durée environ 1 seconde. Ce sont des vocabulaires anglais simples, comme "yes", "no", "up", "down", "left", "right", "on", "off", "stop", "go" et les autres.
+
+
+
+\section{Pré-traitement des données (Preprocessing)}
+\subsection{MNIST}
+Pour le problème MNIST, le seul pré-traitement est la normalisation d'images. Il s'agit de diviser chaque pixel par 255 pour rendre les valeurs compris entre 0 et 1. Faisons une remarque sur lien entre la normalisation et le paramètre $\gamma$ en résumant le rapport de Lab2\footnote{Veuillez trouver une explication plus complète dans le rapport Lab2 de Lu Lin.}. En fait, la normalisation ici n'est pas obligatoire, mais elle a un impact direct sur la valeur du paramètre $\gamma$. En regardant la formule du noyau gaussien~(\ref{kernel}), on déduit que si on multiplie chaque pixel par $10$, il faut diviser $\gamma$ par $10^{2}$ et garder la même constante $C$ pour avoir la même précision (aka accuracy). Cela a été confirmé numériquement. 
+
+\begin{equation}\label{kernel}
+k(x_{i}, x_{j}) = e^{-\gamma \| x_{i}- x_{j} \|^{2}} = e^{-\gamma^{\prime} \| x_{i}^{\prime}-x_{j}^{\prime}\|^{2}}
+\end{equation}
+
+Dans la section \ref{results}, nous allons analyser la structure des données en utilisant cette remarque.
+
+\subsection{Speech recognition}
+
+\paragraph{Remarque}
+\textbf{Lu}: Est-ce que cela tu pourrais compléter cette partie avec le pre-processing que t'as fait ? On pourrait mettre quelques images de spectrogramme. Par exemple, deux spectrogramme similaires de "go" et un spectrogramme très différent (comme celui de "yes" ou autres ?). Cela permet de leur convaincre que le spectrogramme suffit pour classifier ces mots.
+
+
+\section{Transformation de l'espace de recherche}\label{transform}
+Remarquons que pour la machine SVM avec le noyau gaussien, les deux paramètres $\gamma$ et $C$ n'ont pas ni les même sensibilités (l'échelle), ni le domaine de recherche. Par exemple, pour le MNIST, les paramètres state-of-the-art sont $\gamma = 0.025$, $C = 10$ \cite{results}. D'après les résultats du Lab2, le paramètre $C$ pourrait s'élever à l'ordre de 1000, alors que étant contraint par l'exponentiel du noyau gaussien, le résultat est sensible à la valeur de $\gamma$. D'où l'idée de faire au moins une transformation affine. Nous montrons que cela revient à diminuer le conditionnement dans un cas simple. Considérons la fonction ellipsoïde en dimension 2 suivante. 
+
+\begin{equation*}
+\frac{x^2}{a^2} + \frac{y^2}{b^2} = 1
+\end{equation*}
+Si $a>b$, alors le conditionnement $\kappa = (\frac{a}{b})^2$. Il est facile de vérifier que si on fait une transformation affine sur $y$ pour le ramener au même l'ordre de grandeur, on diminue $\kappa$, ainsi on simplifie le problème. La Figure~(\ref{fig:step}) explique pourquoi DFO-TR peut-être fortement influencé par ce genre de transformation. Remarquons que les paramètres de DFO-TR qu'on a choisi sont adapté pour la plate-forme COCO, c'est à dire que la zone de recherche est inclue dans $[-5,5]^{D}$. Ici, la fonction Step est quasiment plat (constant) dans cette zone et que le minimum se trouve à la frontière. Or, la stratégie de DFO-TR consiste faire une grid-search avec $2D+1$ points dans la phase initiale\footnote{En partant de zéro, ce grid-search consiste à évaluer les points en perturbant une coordonnée à chaque fois i.e. $(x_{1}+\delta, \ldots)$, $(x_{1}-\delta, \ldots)$, $(x_{1}, x_{2}+\delta, \ldots)$ ...etc.}, en plus la taille de \textit{delta} initiale $\Delta_{0}$ qu'on avait choisi empêche l'évaluation de dehors de $[-5,5]^{D}$. Tout cela entraîne l'échec de DFO-TR.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width = 0.5\textwidth]{Step_function_inverse.png}
+\caption{Step function inverse}
+\label{fig:step}
+\end{figure}
+
+\subsection{Handle the boundary}
+Dans notre problème 
+
+\paragraph*{TODO Lu} Je vais le faire. 
+
+
+
+ % le couple $\gamma = 0.0242$, $C = 632.65$ 
+
+\section{Commentaires et les résultats}\label{results}
+
+\subsection{MNIST}
+
+De nos expériences dans le Lab2, DFO-TR converge au bout de $10$ à $30$ évaluations. Et les précisions obtenues sont supérieurs à $98\%$. Le tableau suivant illustre les minima locaux trouvés:
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+  \hline
+  % after \\: \hline or \cline{col1-col2} \cline{col3-col4} ...
+  $\gamma$ & $C$ & $\text{size}=7000$ & $\text{size}=70000$ \\
+  $0.0413$ & $78.22$ & $0.973$ & $0.9851$ \\
+  $0.0242$ & $632.65$ & $0.971$ & $0.9848$ \\
+  $0.02845$ & $521.6$ & $0.967$ & $0.985$ \\
+  $0.024$ & $100$ & $0.963$ & $0.9864$ \\
+  \hline
+\end{tabular}
+\end{center}
+Nous avons échantillonné $7000$ images parmi $70000$ pour le hyperparamters tuning. Nous entraînons SVM sur $6000$ images et testons sur $1000$ images. Les valeurs dans les deux dernières colonnes représentent les précisions sur le \emph{test set}.
+
+\textbf{Remarque}: \textit{Scikit-Learn} a mélangé le \emph{train set} et \emph{test set} de MNIST. Donc, c'est normal d'avoir des précisions légèrement différentes par rapport aux données de \textit{Keras}.
+
+
+
+\quad
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document} 
