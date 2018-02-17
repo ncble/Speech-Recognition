@@ -146,10 +146,6 @@ def constraint_shift(x, constraints = np.array([-5,5])+np.zeros(2)[:,None]):
 
 
 def dfo_tr(bb_func, x_initial, options=None):
-	# Added by Lu
-	if not os.path.exists("./dfo_data_lu/"):
-		os.mkdir("./dfo_data_lu/")
-
 	"""
 	This is the main function of the trust region method. It takes the
 	intialized point as the input and returns the solution x and its
@@ -243,8 +239,8 @@ def dfo_tr(bb_func, x_initial, options=None):
 		func_eval += 1
 		print(i)
 		# Added by Lu
-		np.savetxt(open("./dfo_data_lu/SVM.txt", "ab"), Y[:, i].reshape(1,-1))
-		np.savetxt(open("./dfo_data_lu/SVM_value.txt", "ab"), np.array(f_values[i]).reshape(1,1))
+		# np.savetxt(open("./dfo_data_lu/SVM.txt", "ab"), Y[:, i].reshape(1,-1))
+		# np.savetxt(open("./dfo_data_lu/SVM_value.txt", "ab"), np.array(f_values[i]).reshape(1,1))
 
 	# find the point with minimum objective. set it as the first center
 	ind_f_sort = np.argsort(f_values[:, 0])[0]  
@@ -309,8 +305,8 @@ def dfo_tr(bb_func, x_initial, options=None):
 		ftrue = bb_func(np.squeeze(xtrial)) # Added by Lu
 		func_eval += 1
 		# Added by Lu
-		np.savetxt(open("./dfo_data_lu/SVM.txt", "ab"), xtrial.reshape(1,-1))
-		np.savetxt(open("./dfo_data_lu/SVM_value.txt", "ab"), np.array(ftrue).reshape(1,1))
+		# np.savetxt(open("./dfo_data_lu/SVM.txt", "ab"), xtrial.reshape(1,-1))
+		# np.savetxt(open("./dfo_data_lu/SVM_value.txt", "ab"), np.array(ftrue).reshape(1,1))
 		
 
 		#  Calculate ared/pred.
@@ -400,8 +396,7 @@ def dfo_tr(bb_func, x_initial, options=None):
 		#        .format(iteration, iter_suc, func_eval, f, delta))
 	res = result(x, f, iteration, iter_suc, func_eval, delta)
 
-	with open("./dfo_data_lu/result.txt", "wb") as file:
-		dill.dump(res, file)
+	
 	return res
 
 

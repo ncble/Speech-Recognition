@@ -3,9 +3,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-# from keras.models import Sequential, Model
-# from keras.layers import Dense, Activation, Input
-
 
 ## SVM model
 from sklearn.model_selection import train_test_split
@@ -42,7 +39,7 @@ class SVM_Model(object):
 		self.data_X = np.load(filename_X)
 		self.data_Y = np.load(filename_Y)
 		self.shape = self.data_X.shape
-
+		self.n_features = np.product(self.data_X.shape[1:]) # The features size
 		self.X_train = None
 		self.X_val = None
 		self.X_test = None
@@ -88,9 +85,12 @@ class SVM_Model(object):
 		"""
 		Loss function to be minimize using DFO-TR algorithm (hyperparameters' tuning). 
 		"""
-		gamma, C = self.scale2real(x, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
+		if x is None:
+			C = 1.0
+			gamma = 1./self.n_features
+		else:
+			gamma, C = self.scale2real(x, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
 		
-
 		clf = svm.SVC(gamma=gamma, C=C, max_iter=-1) 
 		clf.fit(self.X_train, self.y_train)
 
@@ -291,7 +291,10 @@ class SVM_Model(object):
 			- bounds_C : np array, bounds for C
 		"""
 		save_path = ["./hp_tuning_data/" + optimizer + "_data/SVM.txt", "./hp_tuning_data/" + optimizer + "_data/SVM_value.txt"] 
-		bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path, isBO = True)
+		if optimizer == "BO":
+			bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path, isBO = True)
+		else:
+			bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path, isBO = False)
 
 		if evaluate_on == "test":
 			eval_set = self.X_test
@@ -308,12 +311,16 @@ class SVM_Model(object):
 		with open("./hp_tuning_data/" + optimizer + "_data/config.txt", "wb") as file:
 			message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
 			if optimizer in ["DFO","CMA"]:
+				# In thet case that a start point is needed by a solver
 				gamma_init , C_init = self.scale2real(x_initial, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
 				message = message + "Initial point of x: {}  (real values: (gamma = {}, C = {}))".format(x_initial, gamma_init, C_init)
 			file.write(message)
 
 		if optimizer == "DFO":
-			res = dfo_tr.dfo_tr(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), x_initial)
+			# res = dfo_tr.dfo_tr(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), x_initial)
+			res = dfo_tr.dfo_tr(bb_fun, x_initial)
+			with open("./hp_tuning_data/" + optimizer + "_data/result.txt", "wb") as file:
+				dill.dump(res, file)
 			res = res.x
 		elif optimizer == "CMA":
 			res = cma.fmin(bb_fun, x_initial, sigma0, options={'bounds': [[-5.000001,-5.000001], [5,5]]})[0]
@@ -350,17 +357,27 @@ if __name__ == "__main__":
 	BOUNDS_C = np.array([0, 1000.0])
 
 	obj = SVM_Model(filename_X, filename_Y)
-	# obj.preprocessing(cut = 2000, split_rate = [0.8, 0.2]) # For fine-tuning purpose
+	# obj.preprocessing(cut = 2000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
+	obj.preprocessing(cut = 2000, split_rate = [0.8, 0.2]) # For fine-tuning purpose
 	# obj.preprocessing(cut = 1000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
-	obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
+	# obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
+	# obj.preprocessing(cut = None, split_rate = [0.8, 0.2]) # Test on hole data set !
 	
-
+	# x_initial = None (default setting) gamma ~= 0.000372 (1/n_features), C = 1.0 
 	# x_initial = obj.scale_x([22.6, 31.5], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 80%, 79%  (dfo_data_lu)
 	# x_initial = obj.scale_x([10.1637, 825.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 77.45%  (cma_data0)
 	# x_initial = obj.scale_x([7.77, 453.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 76%  (cma_data1)
 	# x_initial = obj.scale_x([40., 100.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 
-	x_initial = obj.scale_x([6.45, 178.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # improved preprocessing (cut) 86% !!!
+
+	#============================ After silence cut ============================
+	# Start point 1
+	x_initial = obj.scale_x([20., 300.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+
+	# x_initial = obj.scale_x([6.45, 178.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # improved preprocessing (cut) 86% !!!
 	# x_initial = obj.scale_x([15, 265.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 84%
+	# x_initial = obj.scale_x([4.7, 720.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 81.09% DFO_data0 
+	# x_initial = obj.scale_x([7.0, 551.1], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # % DFO_data1 
+	# x_initial = obj.scale_x([15.65, 74.7], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # % DFO_data2 
 	print(x_initial)
 	if DEBUG:
 		print(dfo_tr.constraint_shift(x_initial))
@@ -368,14 +385,19 @@ if __name__ == "__main__":
 		print(obj.scale2real(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))
 
 	st = time()
+	# Old commands
 	# obj.Fine_tune_SVM_with_PRS(bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_tune_SVM_with_BO(bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_tune_SVM_with_DFO(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_tune_SVM_with_CMA_ES(x_initial, 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
+
+
+
+	# print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
+	# print("Loss: {}".format(obj.EvaluateSVM(None, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
 
 	# obj.Fine_Tune_SVM(optimizer = "DFO", x_initial = x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	# obj.Fine_Tune_SVM(optimizer = "CMA", x_initial = x_initial, sigma0 = 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	obj.Fine_Tune_SVM(optimizer = "CMA", x_initial = x_initial, sigma0 = 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_Tune_SVM(optimizer = "PRS", n_evals = 20, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_Tune_SVM(optimizer = "BO", n_calls = 20, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	print("Total elapsed time {}".format(time()-st))
