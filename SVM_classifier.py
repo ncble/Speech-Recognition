@@ -163,119 +163,6 @@ class SVM_Model(object):
 		y[1] = self.linear_transform(x[1], bounds_C, log_scale = False, to_real = False)
 		return y
 
-	# def Fine_tune_SVM_with_DFO(self, x_initial, evaluate_on = "test", restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
-	# 	"""
-	# 	Searching space: [-5,5] * [-5,5] 
-
-
-	# 	"""
-		
-	# 	if evaluate_on == "test":
-	# 		eval_set = self.X_test
-	# 	elif evaluate_on == "val":
-	# 		eval_set = self.X_val
-	# 	else:
-	# 		raise ValueError("'evaluate_on' should be 'test' or 'val'.")
-
-	# 	sample_size = len(self.X_train) + len(eval_set)
-
-	# 	if not os.path.exists("./hp_tuning_data/dfo_data_lu/"):
-	# 		os.makedirs("./hp_tuning_data/dfo_data_lu/")
-	# 	with open("./hp_tuning_data/dfo_data_lu/config.txt", "wb") as file:
-	# 		message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
-	# 		gamma_init , C_init = self.scale2real(x_initial, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
-	# 		message = message+"Initial point of x: {}  (real values: (gamma = {}, C = {}))".format(x_initial, gamma_init, C_init)
-	# 		file.write(message)
-		
-	# 	res = dfo_tr.dfo_tr(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), x_initial)
-	# 	print(res.x)
-
-	# def Fine_tune_SVM_with_CMA_ES(self, x_initial, sigma0, evaluate_on = "test", restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
-	# 	"""
-	# 	Searching space: ???
-		
-	# 	TODO 
-
-	# 	"""
-		
-
-	# 	save_path = ["./hp_tuning_data/cma_data/SVM.txt", "./hp_tuning_data/cma_data/SVM_value.txt"] 
-	# 	bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path)
-
-	# 	if evaluate_on == "test":
-	# 		eval_set = self.X_test
-	# 	elif evaluate_on == "val":
-	# 		eval_set = self.X_val
-	# 	else:
-	# 		raise ValueError("'evaluate_on' should be 'test' or 'val'.")
-
-	# 	sample_size = len(self.X_train) + len(eval_set)
-		
-
-	# 	if not os.path.exists("./hp_tuning_data/cma_data/"):
-	# 		os.makedirs("./hp_tuning_data/cma_data/")
-	# 	with open("./hp_tuning_data/cma_data/config.txt", "wb") as file:
-	# 		message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
-	# 		gamma_init , C_init = self.scale2real(x_initial, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
-	# 		message = message+"Initial point of x: {}  (real values: (gamma = {}, C = {}))".format(x_initial, gamma_init, C_init)
-	# 		file.write(message)
-		
-	# 	res = cma.fmin(bb_fun, x_initial, sigma0, options={'bounds': [[-5.000001,-5.000001], [5,5]]})
-	# 	cma.plot()
-	# 	plt.savefig("./hp_tuning_data/cma_data/cma_plot.png")
-	# 	print("="*50)
-	# 	print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res[0]), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
-	# 	print("CMA all done.")
-        
-	# def Fine_tune_SVM_with_PRS(self, n_evals = 100, evaluate_on = "test", restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
-	# 	save_path = ["./hp_tuning_data/prs_data/SVM.txt", "./hp_tuning_data/prs_data/SVM_value.txt"] 
-	# 	bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path)
-
-	# 	if evaluate_on == "test":
-	# 		eval_set = self.X_test
-	# 	elif evaluate_on == "val":
-	# 		eval_set = self.X_val
-	# 	else:
-	# 		raise ValueError("'evaluate_on' should be 'test' or 'val'.")
-
-	# 	sample_size = len(self.X_train) + len(eval_set)
-		
-
-	# 	if not os.path.exists("./hp_tuning_data/prs_data/"):
-	# 		os.makedirs("./hp_tuning_data/prs_data/")
-	# 	with open("./hp_tuning_data/prs_data/config.txt", "wb") as file:
-	# 		message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
-	# 		file.write(message)
-		
-	# 	res = PRS(bb_fun, 2, n_evals, bounds = [-5,5])
-	# 	print("="*50)
-	# 	print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res[0]), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
-	# 	print("PRS all done.")
-	
-	# def Fine_tune_SVM_with_BO(self, n_calls = 20, evaluate_on = "test", restart=0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
-	# 	save_path = ["./hp_tuning_data/bo_data/SVM.txt", "./hp_tuning_data/bo_data/SVM_value.txt"] 
-	# 	bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path, isBO = True)
-
-	# 	if evaluate_on == "test":
-	# 		eval_set = self.X_test
-	# 	elif evaluate_on == "val":
-	# 		eval_set = self.X_val
-	# 	else:
-	# 		raise ValueError("'evaluate_on' should be 'test' or 'val'.")
-
-	# 	sample_size = len(self.X_train) + len(eval_set)
-		
-
-	# 	if not os.path.exists("./hp_tuning_data/bo_data/"):
-	# 		os.makedirs("./hp_tuning_data/bo_data/")
-	# 	with open("./hp_tuning_data/bo_data/config.txt", "wb") as file:
-	# 		message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
-	# 		file.write(message)
-		
-	# 	res = gp_minimize(bb_fun, [(-5,5)]*2, n_calls = n_calls)
-	# 	print("="*50)
-	# 	print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res.x), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
-	# 	print("Bayesian optimization all done.")
 
 	def Fine_Tune_SVM(self, optimizer = "DFO", evaluate_on = "test", x_initial = None, sigma0 = None, options_cma = {'bounds': [[-5.000001,-5.000001], [5,5]]}, n_evals = 100,
 					n_calls = 20, restart = 0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
@@ -290,7 +177,12 @@ class SVM_Model(object):
 			- bounds_gamma : np array, bounds for gamma
 			- bounds_C : np array, bounds for C
 		"""
-		save_path = ["./hp_tuning_data/" + optimizer + "_data/SVM.txt", "./hp_tuning_data/" + optimizer + "_data/SVM_value.txt"] 
+		full_folder_path = "./hp_tuning_data/" + optimizer + "_data"
+		final_folder_path = makedirs_advanced(full_folder_path)
+		# if not os.path.exists("./hp_tuning_data/" + optimizer + "_data/"):
+		# 	os.makedirs("./hp_tuning_data/" + optimizer + "_data/")
+		save_path = [os.path.join(final_folder_path, "SVM_params.txt"), os.path.join(final_folder_path, "SVM_value.txt")] 
+		# save_path = ["./hp_tuning_data/" + optimizer + "_data/SVM.txt", "./hp_tuning_data/" + optimizer + "_data/SVM_value.txt"] 
 		if optimizer == "BO":
 			bb_fun = Objective_Function(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), save_to=save_path, isBO = True)
 		else:
@@ -306,9 +198,8 @@ class SVM_Model(object):
 		sample_size = len(self.X_train) + len(eval_set)
 		
 
-		if not os.path.exists("./hp_tuning_data/" + optimizer + "_data/"):
-			os.makedirs("./hp_tuning_data/" + optimizer + "_data/")
-		with open("./hp_tuning_data/" + optimizer + "_data/config.txt", "wb") as file:
+	
+		with open(os.path.join(final_folder_path, "config.txt"), "wb") as file:
 			message = "Sample size = {} (train: {}, {}: {}).\n".format(sample_size, len(self.X_train), evaluate_on, len(eval_set))
 			if optimizer in ["DFO","CMA"]:
 				# In thet case that a start point is needed by a solver
@@ -319,13 +210,13 @@ class SVM_Model(object):
 		if optimizer == "DFO":
 			# res = dfo_tr.dfo_tr(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), x_initial)
 			res = dfo_tr.dfo_tr(bb_fun, x_initial)
-			with open("./hp_tuning_data/" + optimizer + "_data/result.txt", "wb") as file:
+			with open(os.path.join(final_folder_path, "result.txt"), "wb") as file:
 				dill.dump(res, file)
 			res = res.x
 		elif optimizer == "CMA":
 			res = cma.fmin(bb_fun, x_initial, sigma0, options=options_cma)[0]
 			cma.plot()
-			plt.savefig("./hp_tuning_data/CMA_data/CMA_plot.png")
+			plt.savefig(os.path.join(final_folder_path, "CMA_plot.png"))
 		elif optimizer == "PRS":
 			res = PRS(bb_fun, 2, n_evals, bounds = [-5,5])[0]
 		elif optimizer == "BO":
@@ -335,12 +226,40 @@ class SVM_Model(object):
 			print("Unknown optimizer : should be DFO, CMA, PRS or BO")
 			return
 		print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
-		with open("./hp_tuning_data/" + optimizer + "_data/final_result.txt", "wb") as file:
+		with open(os.path.join(final_folder_path, "final_result.txt"), "wb") as file:
 			message = "Best point found [gamma, C]: {}\n".format(self.scale2real(np.array(res), bounds_gamma=bounds_gamma, bounds_C=bounds_C))
 			message = message + "Total function evaluations: {}".format(bb_fun.count)
 			file.write(message)
 		return
-    
+
+def makedirs_advanced(full_folder_path, set_count=0):
+	
+	"""
+	The command 'os.path.basename' is not consistent in different version of python. That's why I use 'split' here.
+	"""
+
+	# folder_name = os.path.basename(full_folder_path) #"./test_folder/1/2/3" => 3, "./test_folder/1/2/3/" => ""
+	
+	folder_name = full_folder_path.split("/")[-1]
+	prefixe = "/".join(full_folder_path.split("/")[:-1])
+	# print(full_folder_path.split("/"))
+	if len(folder_name) == 0:
+		print("Warning: Folder path should look like '/XXX/Name' not '/XXX/Name/'.")
+		folder_name = full_folder_path.split("/")[-2]
+		prefixe = "/".join(full_folder_path.split("/")[:-2])
+	
+	count = set_count
+	
+	current_folder_path = os.path.join(prefixe, folder_name+"_{}".format(count))
+
+	while os.path.exists(current_folder_path):
+		count += 1
+		current_folder_name = folder_name+"_{}".format(count)
+		current_folder_path = os.path.join(prefixe, current_folder_name)
+	os.makedirs(current_folder_path)
+
+
+	return current_folder_path
 
 if __name__ == "__main__":
 	print("Start...")
@@ -403,10 +322,10 @@ if __name__ == "__main__":
 	# Default setting
 	# print("Loss: {}".format(obj.EvaluateSVM(None, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))) 
 
-	# obj.Fine_Tune_SVM(optimizer = "DFO", x_initial = x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	obj.Fine_Tune_SVM(optimizer = "DFO", x_initial = x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_Tune_SVM(optimizer = "CMA", x_initial = x_initial, sigma0 = 5.0, options_cma = {'bounds': [[-5.000001,-5.000001], [5,5]], 'popsize': 15}, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_Tune_SVM(optimizer = "PRS", n_evals = 100, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	obj.Fine_Tune_SVM(optimizer = "BO", n_calls = 100, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	# obj.Fine_Tune_SVM(optimizer = "BO", n_calls = 100, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	print("Total elapsed time {}".format(time()-st))
 
 	

@@ -1,0 +1,2 @@
+Best point found [gamma, C]: (22.2233876890392, 404.5215481338156)
+Total function evaluations: 34

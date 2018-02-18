@@ -237,7 +237,6 @@ def dfo_tr(bb_func, x_initial, options=None):
 		Y[:, i] = np.squeeze(constraint_shift(Y[:, i]))
 		f_values[i] = bb_func(np.squeeze(Y[:, i])) # np.squeeze(x)
 		func_eval += 1
-		print(i)
 		# Added by Lu
 		# np.savetxt(open("./dfo_data_lu/SVM.txt", "ab"), Y[:, i].reshape(1,-1))
 		# np.savetxt(open("./dfo_data_lu/SVM_value.txt", "ab"), np.array(f_values[i]).reshape(1,1))
