@@ -1,0 +1,1 @@
+Sample size = 2000 (train: 1600, test: 400).

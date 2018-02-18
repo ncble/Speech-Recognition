@@ -17,11 +17,13 @@ class Objective_Function():
 		self.history_fbest = []
 		self.isBO = isBO
 		self.save_to = save_to
+		self.count = 0
 		
 	def __call__(self, x):
 		if self.isBO:
 			x = np.array(x)
 		value = self.fun(x)
+		self.count = self.count+1
 		if self.save_to is not None:
 			assert len(self.save_to) == 2, "save_to should be a length 2 list/array [path_to_points, path_to_values]"
 			np.savetxt(open(self.save_to[0], "ab"), x.reshape(1,-1))

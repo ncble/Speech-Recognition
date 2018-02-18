@@ -277,7 +277,7 @@ class SVM_Model(object):
 	# 	print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res.x), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
 	# 	print("Bayesian optimization all done.")
 
-	def Fine_Tune_SVM(self, optimizer = "DFO", evaluate_on = "test", x_initial = None, sigma0 = None, n_evals = 100,
+	def Fine_Tune_SVM(self, optimizer = "DFO", evaluate_on = "test", x_initial = None, sigma0 = None, options_cma = {'bounds': [[-5.000001,-5.000001], [5,5]]}, n_evals = 100,
 					n_calls = 20, restart = 0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
 		"""
 		Fine tuning for SVM
@@ -323,7 +323,7 @@ class SVM_Model(object):
 				dill.dump(res, file)
 			res = res.x
 		elif optimizer == "CMA":
-			res = cma.fmin(bb_fun, x_initial, sigma0, options={'bounds': [[-5.000001,-5.000001], [5,5]]})[0]
+			res = cma.fmin(bb_fun, x_initial, sigma0, options=options_cma)[0]
 			cma.plot()
 			plt.savefig("./hp_tuning_data/CMA_data/CMA_plot.png")
 		elif optimizer == "PRS":
@@ -335,11 +335,15 @@ class SVM_Model(object):
 			print("Unknown optimizer : should be DFO, CMA, PRS or BO")
 			return
 		print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
+		with open("./hp_tuning_data/" + optimizer + "_data/final_result.txt", "wb") as file:
+			message = "Best point found [gamma, C]: {}\n".format(self.scale2real(np.array(res), bounds_gamma=bounds_gamma, bounds_C=bounds_C))
+			message = message + "Total function evaluations: {}".format(bb_fun.count)
+			file.write(message)
 		return
     
 
 if __name__ == "__main__":
-	print("Start reading")
+	print("Start...")
 	filename_X = "preprocessed/input.npy"
 	filename_Y = "preprocessed/output.npy"
 	# model = NN_Model(filename_X, filename_Y)
@@ -371,14 +375,16 @@ if __name__ == "__main__":
 
 	#============================ After silence cut ============================
 	# Start point 1
-	x_initial = obj.scale_x([20., 300.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	x_initial = obj.scale_x([10., 300.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 
 	# x_initial = obj.scale_x([6.45, 178.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # improved preprocessing (cut) 86% !!!
 	# x_initial = obj.scale_x([15, 265.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 84%
 	# x_initial = obj.scale_x([4.7, 720.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 81.09% DFO_data0 
 	# x_initial = obj.scale_x([7.0, 551.1], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # % DFO_data1 
 	# x_initial = obj.scale_x([15.65, 74.7], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # % DFO_data2 
-	print(x_initial)
+	# x_initial = obj.scale_x([3.879, 669.5837], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # % CMA_data0 
+	# x_initial = obj.scale_x([15.01775, 359.156], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # % CMA_data1
+	print("Initial point: {}".format(x_initial))
 	if DEBUG:
 		print(dfo_tr.constraint_shift(x_initial))
 		print(obj.scale2real(dfo_tr.constraint_shift(x_initial), bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))
@@ -394,12 +400,13 @@ if __name__ == "__main__":
 
 
 	# print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
-	# print("Loss: {}".format(obj.EvaluateSVM(None, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
+	# Default setting
+	# print("Loss: {}".format(obj.EvaluateSVM(None, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))) 
 
 	# obj.Fine_Tune_SVM(optimizer = "DFO", x_initial = x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	obj.Fine_Tune_SVM(optimizer = "CMA", x_initial = x_initial, sigma0 = 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	# obj.Fine_Tune_SVM(optimizer = "PRS", n_evals = 20, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	# obj.Fine_Tune_SVM(optimizer = "BO", n_calls = 20, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	# obj.Fine_Tune_SVM(optimizer = "CMA", x_initial = x_initial, sigma0 = 5.0, options_cma = {'bounds': [[-5.000001,-5.000001], [5,5]], 'popsize': 15}, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	# obj.Fine_Tune_SVM(optimizer = "PRS", n_evals = 100, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	obj.Fine_Tune_SVM(optimizer = "BO", n_calls = 100, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	print("Total elapsed time {}".format(time()-st))
 
 	
