@@ -281,10 +281,10 @@ if __name__ == "__main__":
 
 	obj = SVM_Model(filename_X, filename_Y)
 	# obj.preprocessing(cut = 2000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
-	obj.preprocessing(cut = 2000, split_rate = [0.8, 0.2]) # For fine-tuning purpose
+	# obj.preprocessing(cut = 2000, split_rate = [0.8, 0.2]) # For fine-tuning purpose
 	# obj.preprocessing(cut = 1000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
 	# obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
-	# obj.preprocessing(cut = None, split_rate = [0.8, 0.2]) # Test on hole data set !
+	obj.preprocessing(cut = None, split_rate = [0.8, 0.2]) # Test on hole data set !
 	
 	# x_initial = None (default setting) gamma ~= 0.000372 (1/n_features), C = 1.0 
 	# x_initial = obj.scale_x([22.6, 31.5], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 80%, 79%  (dfo_data_lu)
@@ -294,7 +294,7 @@ if __name__ == "__main__":
 
 	#============================ After silence cut ============================
 	# Start point 1
-	x_initial = obj.scale_x([10., 300.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	x_initial = obj.scale_x([15.84, 600.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 
 	# x_initial = obj.scale_x([6.45, 178.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # improved preprocessing (cut) 86% !!!
 	# x_initial = obj.scale_x([15, 265.], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 84%
@@ -318,11 +318,11 @@ if __name__ == "__main__":
 
 
 
-	# print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
+	print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
 	# Default setting
 	# print("Loss: {}".format(obj.EvaluateSVM(None, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))) 
 
-	obj.Fine_Tune_SVM(optimizer = "DFO", x_initial = x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	# obj.Fine_Tune_SVM(optimizer = "DFO", x_initial = x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_Tune_SVM(optimizer = "CMA", x_initial = x_initial, sigma0 = 5.0, options_cma = {'bounds': [[-5.000001,-5.000001], [5,5]], 'popsize': 15}, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_Tune_SVM(optimizer = "PRS", n_evals = 100, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	# obj.Fine_Tune_SVM(optimizer = "BO", n_calls = 100, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)

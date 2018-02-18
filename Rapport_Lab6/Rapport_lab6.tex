@@ -22,7 +22,8 @@
 \usepackage{graphicx}
 
 \usepackage{pstricks-add}
-	
+\usepackage{caption}
+\usepackage{subcaption}
 % pour les notes de bas de page
 \AddThinSpaceBeforeFootnotes % à insérer si on utilise \usepackage[french]{babel}
 \FrenchFootnotes % à insérer si on utilise \usepackage[french]{babel}
@@ -37,7 +38,7 @@
 \title[Data camp 2018]{Data camp Lab6}
 \subtitle{Hyperparameters tuning on SVM models}
 \author{Lu \textsc{Lin}, Olivier \textsc{Coudray}}
-\date{16 février 2018}
+\date{18 février 2018}
 
 \begin{document}
 
@@ -47,7 +48,7 @@
 
 
 \begin{abstract}
-Ce dossier contient un sous-dossiers nommé \texttt{DFO\_src} et ....
+On travaille en binôme pour réaliser ce Lab6 en remplaçant le problème de \textit{Digits} par \textit{MNIST} et le problème de \textit{Classification de chien/chat} par \textit{Speech recognition}. Ce dernier étant notre projet final, on décide donc d'appliquer ces techniques de \textit{Hyperparameters tuning} dans notre projet. On ne va pas soumettre les codes sur Moodle pour le moment, sachant que sans les données, il n'est pas possible de les exécuter. Toutefois, si vous les souhaitez, on pourrait vous les envoyer après.
 
 \end{abstract}
 
@@ -76,35 +77,60 @@ Dans la section \ref{results}, nous allons analyser la structure des données en
 
 \subsection{Speech recognition}
 
-Le pré-traitement des enregistrements audio s'est fait en deux étapes. Dans un premier temps, il s'agit de recouper les extraits audio de façon à ne sélectionner que la partie où le mot est prononcé. Plus concrètement, on passe un filtre sur le signal pour couper tous les sons en deçà d'un certain seuil d'intensité (dans notre cas 15 dB). Dans un deuxième temps (c'est la partie la plus importante), il faut extraire les données de l'enregistrement. La technique standard consiste à considérer le spectrogramme de l'extrait audio. Dans le cadre de la reconnaissance vocale, il est conseillé d'utiliser un spectrogramme légèrement différent (échelle non linéaire en fréquence) : \textit{Mel-frequency cepstrum}.
+Le pré-traitement des enregistrements audio s'est fait en deux étapes. Dans un premier temps, il s'agit de recouper les extraits audio de façon à ne sélectionner que la partie où le mot est prononcé. Plus concrètement, on passe un filtre sur le signal pour couper tous les sons en deçà d'un certain seuil d'intensité (dans notre cas 15 dB). Dans un deuxième temps (c'est la partie la plus importante), il faut extraire les données de l'enregistrement. La technique standard consiste à considérer le spectrogramme de l'extrait audio. Dans le cadre de la reconnaissance vocale, il est conseillé d'utiliser un spectrogramme légèrement différent (échelle non linéaire en fréquence mieux adaptée aux oreilles humaines) : \textit{Mel-frequency cepstrum}.
 
 Notons que l'on peut considérer ou du moins visualiser ces spectrogrammes comme des images (matrices). A titre d'exemple, on peut observer ci-dessous, les spectrogrammes Mel pour deux mots différents.
 
-\begin{figure}
-   \begin{minipage}[c]{.46\linewidth}
-      \includegraphics[scale=0.39]{no1.png}
-      \caption{"No"}   
-     \end{minipage} \hfill
-   \begin{minipage}[c]{.46\linewidth}
-      \includegraphics[scale=0.39]{no2.png}
-      \caption{"No"}  
-   \end{minipage}
+% \begin{figure}
+%    \begin{minipage}[c]{.46\linewidth}
+%       \includegraphics[scale=0.39]{no1.png}
+%       \caption{"No"}   
+%      \end{minipage} \hfill
+%    \begin{minipage}[c]{.46\linewidth}
+%       \includegraphics[scale=0.39]{no2.png}
+%       \caption{"No"}  
+%    \end{minipage}
+% \end{figure}
+
+% \begin{figure}
+%    \begin{minipage}[c]{.46\linewidth}
+%       \includegraphics[scale=0.39]{yes1.png}
+%       \caption{"Yes"}   
+%      \end{minipage} \hfill
+%    \begin{minipage}[c]{.46\linewidth}
+%       \includegraphics[scale=0.39]{yes2.png}
+%       \caption{"Yes"}  
+%    \end{minipage}
+% \end{figure}
+
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}{0.5\textwidth}
+  \centering
+  \includegraphics[width=1.0\linewidth]{no1.png}
+  \caption{Mel-Spectrogramme de "No" 1}
+\end{subfigure}%
+\begin{subfigure}{0.5\textwidth}
+  \centering
+  \includegraphics[width=1.0\linewidth]{no2.png}
+  \caption{Mel-Spectrogramme de "No" 2}
+\end{subfigure}%
 \end{figure}
 
-\begin{figure}
-   \begin{minipage}[c]{.46\linewidth}
-      \includegraphics[scale=0.39]{yes1.png}
-      \caption{"Yes"}   
-     \end{minipage} \hfill
-   \begin{minipage}[c]{.46\linewidth}
-      \includegraphics[scale=0.39]{yes2.png}
-      \caption{"Yes"}  
-   \end{minipage}
+\begin{figure}[h]
+\centering
+\begin{subfigure}{0.5\textwidth}
+  \centering
+  \includegraphics[width=1.0\linewidth]{yes1.png}
+  \caption{Mel-Spectrogramme de "Yes" 1}
+\end{subfigure}%
+\begin{subfigure}{0.5\textwidth}
+  \centering
+  \includegraphics[width=1.0\linewidth]{yes2.png}
+  \caption{Mel-Spectrogramme de "Yes" 2}
+\end{subfigure}%
 \end{figure}
-
-\paragraph{Remarque}
-\textbf{Lu}: Est-ce que cela tu pourrais compléter cette partie avec le pre-processing que t'as fait ? On pourrait mettre quelques images de spectrogramme. Par exemple, deux spectrogramme similaires de "go" et un spectrogramme très différent (comme celui de "yes" ou autres ?). Cela permet de leur convaincre que le spectrogramme suffit pour classifier ces mots.
-
 
 \section{Transformation de l'espace de recherche}\label{transform}
 Remarquons que pour la machine SVM avec le noyau gaussien, les deux paramètres $\gamma$ et $C$ n'ont pas ni les même sensibilités (l'échelle), ni le domaine de recherche. Par exemple, pour le MNIST, les paramètres state-of-the-art sont $\gamma = 0.025$, $C = 10$ \cite{results}. D'après les résultats du Lab2, le paramètre $C$ pourrait s'élever à l'ordre de 1000, alors que étant contraint par l'exponentiel du noyau gaussien, le résultat est sensible à la valeur de $\gamma$. D'où l'idée de faire au moins une transformation affine. Nous montrons que cela revient à diminuer le conditionnement dans un cas simple. Considérons la fonction ellipsoïde en dimension 2 suivante. 
@@ -122,9 +148,10 @@ Si $a>b$, alors le conditionnement $\kappa = (\frac{a}{b})^2$. Il est facile de 
 \end{figure}
 
 \subsection{Handle the boundary}
-Dans notre problème 
+Dans notre problème, il y a deux contraintes, il faut que les deux hyperparamètres $\gamma$, $C$ soient positives. Il existe plusieurs façons pour manipuler ces contraintes. Par exemple, on pourrait faire une transformation non linéaire $f:(x,y) \mapsto (x^2, y^2)$ de l'espace de recherche à l'espace des paramètres $[-5, 5]^2 \mapsto (\gamma, C)$ i.e. $(\gamma, C) = f(x,y)$. Il est aussi possible d'ajouter une pénalisation forte pour les points en dehors de la frontière. Cependant, la pénalisation risque de perturber la performance de la plupart des solvers. Notamment le \textit{surrogate model} de DFO-TR, CMA-ES et BO repose sur les valeurs d'évaluations. Ici, on utilise seulement une transformation affine entre l'espace de recherche et l'espace des paramètres. Puis, selon les solvers, on fait des modifications nécessaires. Par exemple, dans le code de DFO-TR, on ajoute une fonction \texttt{constraint\_shift} pour forcer les évaluations dans l'espace $[-5,5]^2$. Pour CMA-ES, on utilise directement \texttt{options=$\{bounds: [-5,5]^2\}$}. Enfin, le BO de scikit-learn prend les frontières comme l'argument.
 
-\paragraph*{TODO Lu} Je vais le faire. 
+
+
 
 
 
@@ -141,6 +168,7 @@ De nos expériences dans le Lab2, DFO-TR converge au bout de $10$ à $30$ évalu
   \hline
   % after \\: \hline or \cline{col1-col2} \cline{col3-col4} ...
   $\gamma$ & $C$ & $\text{size}=7000$ & $\text{size}=70000$ \\
+  \hline
   $0.0413$ & $78.22$ & $0.973$ & $0.9851$ \\
   $0.0242$ & $632.65$ & $0.971$ & $0.9848$ \\
   $0.02845$ & $521.6$ & $0.967$ & $0.985$ \\
@@ -154,9 +182,29 @@ Nous avons échantillonné $7000$ images parmi $70000$ pour le hyperparamters tu
 
 \subsection*{Speech recognition}
 
-Dans le traitement des données audio, on sépare le jeu de données en trois datasets : un d'entraînement, un de validation et un de test. Pour des raisons de complexité et de temps de calcul, on ne réalise l'entraînement que sur $1600$ données dans cette étude comparative. La validation se fait sur un ensemble de $400$ extraits audio.
+% Dans le traitement des données audio, on sépare le jeu de données en trois datasets : un d'entraînement, un de validation et un de test. Pour des raisons de complexité et de temps de calcul, on ne réalise l'entraînement que sur $1600$ données dans cette étude comparative. La validation se fait sur un ensemble de $400$ extraits audio.
 
-Dans le cas de DFO-TR et CMA-ES, on note le nombre d'appels à la fonction d'évaluation ainsi que le temps d'exécution global. Dans le cas de \textit{Random Search} et BO, on fixe au départ un budget de $100$ évaluations et on note le temps d'exécution.
+% Dans le cas de DFO-TR et CMA-ES, on note le nombre d'appels à la fonction d'évaluation ainsi que le temps d'exécution global. Dans le cas de \textit{Random Search} et BO, on fixe au départ un budget de $100$ évaluations et on note le temps d'exécution.
+
+
+Dans le traitement des données audio, on dispose 500 données pour chaque classes, donc 5500 données au total. Pour la calibration des hyperparamètres, on n'utilise que 2000 données (mélangé). Puis, on sépare le jeu de données en deux datasets : un d'entraînement et un de test avec la répartition $80\%-20\%$. Ensuite, pour pouvoir comparer ces optimisers, on lance chaque algorithme trois fois (i.e. \texttt{restart}). Enfin, on faire le test sur l'ensemble des 5500 données avec la répartition $80\%-20\%$ et on ne garde que les meilleurs paramètres. Comme le test set n'est pas fixé à la dernière étape, la précision est fluctuée.
+
+On note le nombre d'appels à la fonction d'évaluation ainsi que le temps d'exécution global. Dans le cas de \textit{Random Search} et BO, on fixe au départ un budget de $100$ évaluations et on note le temps d'exécution.
+
+\paragraph*{Remarque} Bien que DFO-TR soit déterministe, le fait qu'on a mélangé (shuffle) les données à chaque \texttt{restart}, les résultats finals sont différents.
+% \begin{center}
+% \begin{tabular}{|c|c|c|c|c|c|}
+%   \hline
+%   % after \\: \hline or \cline{col1-col2} \cline{col3-col4} ...
+%   $\text{Optimizer}$ & $\gamma$ & $C$ & $\text{Score}$ & $\text{time (sec)}$ & $\text{n eval}$ \\
+%   \hline
+%   $\text{DFO-TR}$ & $5.75$ & $774$ & $0.823$ & $553$ & $35$ \\
+%   $\text{CMA-ES}$ & $10.18$ & $745$ & $0.823$ & $4865$ & $288$\\
+%   $\text{Random Search}$ & $10.61$ & $946$ & $0.820$ & $1560$ & $100$\\
+%   $\text{BO}$ & $6.31$ & $500$ & $0.820$ & $1794$ & $100$\\
+%   \hline
+% \end{tabular}
+% \end{center}
 
 \begin{center}
 \begin{tabular}{|c|c|c|c|c|c|}
@@ -164,25 +212,36 @@ Dans le cas de DFO-TR et CMA-ES, on note le nombre d'appels à la fonction d'év
   % after \\: \hline or \cline{col1-col2} \cline{col3-col4} ...
   $\text{Optimizer}$ & $\gamma$ & $C$ & $\text{Score}$ & $\text{time (sec)}$ & $\text{n eval}$ \\
   \hline
-  $\text{DFO-TR}$ & $5.75$ & $774$ & $0.823$ & $553$ & $35$ \\
-  $\text{CMA-ES}$ & $10.18$ & $745$ & $0.823$ & $4865$ & $288$\\
-  $\text{Random Search}$ & $10.61$ & $946$ & $0.820$ & $1560$ & $100$\\
-  $\text{BO}$ & $6.31$ & $500$ & $0.820$ & $1794$ & $100$\\
+  $\text{DFO-TR}$ & $15.0$ & $265.0$ & $84.43 \pm 0.48 \%$ & $\approx 600$ & $\approx 40$ \\
+  $\text{CMA-ES}$ & $15.02$ & $359.16$ & $83.93 \pm 0.76 \%$ & $\approx 4000$ & $\approx 300$\\
+  $\text{Random Search}$ & $16.64$ & $408.87$ & $84.39 \pm 0.64 \%$ & $\approx 1200$ & $100$\\
+  $\text{BO}$ & $15.84$ & $600$ & $84.14 \pm 0.70 \%$ & $\approx 1500$ & $100$\\
+  $\text{Default}$ & $0.000372$ & $1.0$ & $7.45 \pm 0.60 \%$ & $\--$ & $\--$\\
   \hline
 \end{tabular}
 \end{center}
 
-L'étude montre que l'algorithme DFO-TR est le plus efficace aussi bien du point de vue de l'optimum trouvé mais également et surtout du point de vue du temps de calcul.
+Remarquons d'abord que la fonction objective est non-bruité pendant la calibration des hyperparamètres, mais elle est bruité pour la évaluation finale à cause de \texttt{shuffle}. Grâce à la calibration des hyperparamètres, on gagne énormément en précision.\footnote{La valeur de défaut de $\gamma$ est définie par $\frac{1}{\texttt{n\_features}}$ avec \texttt{n\_features} le nombre de caractéristiques. En l'occurrence, on a $128*21 = 2688$ pour chaque spectrogramme.} En fait, d'après le Kaggle, on est proche déjà le résultat state-of-the-art (avec la précision $91.06\%$)\cite{leaderboard}. On observe également qu'il existe plusieurs locaux optima qui sont tout à fait comparable avec ceux trouvés ci-dessus. Notamment CMA-ES a trouvé $(\gamma, C) = (3.88, 669.58)$, et $(\gamma, C) = (7.0, 551.1)$ avec la $\texttt{popsize}=6$ par défaut. En fait, le résultat ci-dessus est obtenu avec $\texttt{popsize} = 15$.
 
-L'algorithme CMA-ES, en dépit du temps de calcul important fournit des renseignements intéressant sur la fonction de coût (voir graphe suivant). En particulier, on vérifie que la fonction est séparable.
+
+L'étude montre que l'algorithme DFO-TR est le plus efficace aussi bien du point de vue de l'optimum trouvé mais également et surtout du point de vue du temps de calcul. L'algorithme CMA-ES, en dépit du temps de calcul important fournit des renseignements intéressant sur la fonction de coût (voir graphe suivant). En particulier, on vérifie que la fonction (SVM avec noyau gaussien) est séparable (Figure~(\ref{fig:cma6}) (\ref{fig:cma15})), ce qui est très étonnant.
+
+Faisons une remarque sur le lien entre l'échelle des paramètres $\gamma$ et $C$ et la structure des données (i.e. la difficulté du problème). On sait que plus que $\gamma$ et $C$ sont élevés, plus que le modèle est complexe, car $\frac{1}{\gamma}$ correspond au \textit{rayon} du noyau gaussien et $C$ (complexity) contrôle le nombre de \textit{support vector}. Pour le problème \textbf{MNIST} le(s) meilleur(s) paramètres est(sont) autour de $(0.024, 100)$, alors que pour \textbf{Speech recognition}, on trouve $(15.0, 400)$. Peut-on donc en conclure que le Speech recognition est beaucoup plus difficile que MNIST ? En fait, pour une comparaison plus juste, il faut tenir compte la gamme des features, d'après l'équation~(\ref{kernel}). Pour le problème de Speech recognition, on avait fait une normalisation en norme 2, et l'intervalle des valeurs est $[-0.04, 0]$ (le son en décibel \texttt{dB} est négatif). Ainsi, si on le re-normalise à l'ordre $[0, 1]$, il faut multiplier les features par 25, cela revient à diviser $\gamma$ par $25^2 = 625$. Enfin, $\frac{15}{625} = 0.024$, on retrouve le même ordre de grandeur !  
 
 \begin{figure}[h]
 \centering
-\includegraphics[width = 0.5\textwidth]{CMA_plot.png}
-\caption{CMA-ES plot}
-\label{fig:step}
+\includegraphics[width = 0.7\textwidth]{CMA_plot_pp_size6.png}
+\caption{CMA-ES plot popsize$=6$}
+\label{fig:cma6}
 \end{figure}
 
+
+\begin{figure}[h]
+\centering
+\includegraphics[width = 0.7\textwidth]{CMA_plot_pp_size15.png}
+\caption{CMA-ES plot popsize$=15$}
+\label{fig:cma15}
+\end{figure}
 \quad
 
 \bibliographystyle{plain}
