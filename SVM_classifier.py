@@ -52,7 +52,7 @@ class SVM_Model(object):
 		print("Start preprocessing...")
 		assert sum(split_rate) == 1.0, "Sum of split rate should be 1.0 !"
 		self.data_X = self.data_X.reshape((self.shape[0], self.shape[1]*self.shape[2]))
-		self.data_X, self.data_Y = shuffle(self.data_X, self.data_Y)
+		self.data_X, self.data_Y = shuffle(self.data_X, self.data_Y, random_state = 42)
 		if cut is not None:
 			self.data_X = self.data_X[:cut]
 			self.data_Y = self.data_Y[:cut]
@@ -305,7 +305,6 @@ class SVM_Model(object):
 
 		sample_size = len(self.X_train) + len(eval_set)
 		
-
 		if not os.path.exists("./hp_tuning_data/" + optimizer + "_data/"):
 			os.makedirs("./hp_tuning_data/" + optimizer + "_data/")
 		with open("./hp_tuning_data/" + optimizer + "_data/config.txt", "wb") as file:
@@ -319,22 +318,30 @@ class SVM_Model(object):
 		if optimizer == "DFO":
 			# res = dfo_tr.dfo_tr(lambda x: self.EvaluateSVM(x, evaluate_on = evaluate_on, bounds_gamma=bounds_gamma, bounds_C=bounds_C), x_initial)
 			res = dfo_tr.dfo_tr(bb_fun, x_initial)
-			with open("./hp_tuning_data/" + optimizer + "_data/result.txt", "wb") as file:
+			with open("./hp_tuning_data/DFO_data/result.txt", "wb") as file:
 				dill.dump(res, file)
+			score = res.fun
 			res = res.x
 		elif optimizer == "CMA":
-			res = cma.fmin(bb_fun, x_initial, sigma0, options={'bounds': [[-5.000001,-5.000001], [5,5]]})[0]
+			res = cma.fmin(bb_fun, x_initial, sigma0, options={'bounds': [[-5.000001,-5.000001], [5,5]]})
+			score = res[1]
+			res = res[0]
 			cma.plot()
 			plt.savefig("./hp_tuning_data/CMA_data/CMA_plot.png")
 		elif optimizer == "PRS":
-			res = PRS(bb_fun, 2, n_evals, bounds = [-5,5])[0]
+			res = PRS(bb_fun, 2, n_evals, bounds = [-5,5])
+			score = res[1]
+			res = res[0]
 		elif optimizer == "BO":
 			res = gp_minimize(bb_fun, [(-5,5)]*2, n_calls = n_calls)
+			score = res.fun
 			res = res.x
+
 		else:
 			print("Unknown optimizer : should be DFO, CMA, PRS or BO")
 			return
 		print("Best point found [gamma, C]: {}".format(self.scale2real(np.array(res), bounds_gamma=bounds_gamma, bounds_C=bounds_C)))
+		print("Score : {}".format(-score))
 		return
     
 
@@ -359,7 +366,7 @@ if __name__ == "__main__":
 	obj = SVM_Model(filename_X, filename_Y)
 	# obj.preprocessing(cut = 2000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
 	obj.preprocessing(cut = 2000, split_rate = [0.8, 0.2]) # For fine-tuning purpose
-	# obj.preprocessing(cut = 1000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
+	# obj.preprocessing(cut = 500, split_rate = [0.7, 0.3]) # For fine-tuning purpose
 	# obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
 	# obj.preprocessing(cut = None, split_rate = [0.8, 0.2]) # Test on hole data set !
 	
@@ -397,9 +404,9 @@ if __name__ == "__main__":
 	# print("Loss: {}".format(obj.EvaluateSVM(None, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
 
 	# obj.Fine_Tune_SVM(optimizer = "DFO", x_initial = x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	obj.Fine_Tune_SVM(optimizer = "CMA", x_initial = x_initial, sigma0 = 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	# obj.Fine_Tune_SVM(optimizer = "PRS", n_evals = 20, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
-	# obj.Fine_Tune_SVM(optimizer = "BO", n_calls = 20, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	# obj.Fine_Tune_SVM(optimizer = "CMA", x_initial = x_initial, sigma0 = 5.0, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	# obj.Fine_Tune_SVM(optimizer = "PRS", n_evals = 100, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
+	obj.Fine_Tune_SVM(optimizer = "BO", n_calls = 100, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)
 	print("Total elapsed time {}".format(time()-st))
 
 	
