@@ -54,14 +54,14 @@ labels = {
     "other":10
 }
 
-def preprocessing_all(file_per_class = 500, folder = "./data/train/audio", labels_encoder = labels):
+def preprocessing_all(file_per_class = 500, folder = "../data/train/audio", labels_encoder = labels):
     '''
     Preprocess all data and save the data and labels as numpy arrays:
         - file_per_class: number of file preprocessed for each class (np.infty if you want to preprocess all)
         - folder: path to folder containg the data
         - labels_encoder: dic
     '''
-    path = "./preprocessed"
+    path = "../data/preprocessed"
     X = np.zeros((11*file_per_class, 128, 21))
     y = np.zeros((11*file_per_class, 11))
     if not os.path.exists(path):

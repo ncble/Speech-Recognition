@@ -196,8 +196,8 @@ def load_audio_file(filename):
 	# y, sr = librosa.core.load(filename, sr=22050, offset=15.0, duration=5.0)
 	return y, sr
 
-def walker_example(root_dir='./data/train/audio/'):
-	for path, directories, files in os.walk('./data/train/audio/'):
+def walker_example(root_dir='../data/train/audio/'):
+	for path, directories, files in os.walk('../data/train/audio/'):
 		print 'ls %r' % path
 		for directory in directories:
 			print '    d%r' % directory
@@ -205,7 +205,7 @@ def walker_example(root_dir='./data/train/audio/'):
 			print '    -%r' % filename
 
 
-def generator(root_dir='./data/train/audio/', folder = None, stop_after = None):
+def generator(root_dir='../data/train/audio/', folder = None, stop_after = None):
 	"""
 	A simple generator. See: https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do
 	

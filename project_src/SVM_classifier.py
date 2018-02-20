@@ -165,7 +165,7 @@ class SVM_Model(object):
 
 
 	def Fine_Tune_SVM(self, optimizer = "DFO", evaluate_on = "test", x_initial = None, sigma0 = None, options_cma = {'bounds': [[-5.000001,-5.000001], [5,5]]}, n_evals = 100,
-					n_calls = 20, restart = 0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0])):
+					n_calls = 20, restart = 0, bounds_gamma=np.array([1e-5, 1.0]), bounds_C=np.array([0, 500.0]), add_comments=None):
 		"""
 		Fine tuning for SVM
 		Parameters:
@@ -177,7 +177,7 @@ class SVM_Model(object):
 			- bounds_gamma : np array, bounds for gamma
 			- bounds_C : np array, bounds for C
 		"""
-		full_folder_path = "./hp_tuning_data/" + optimizer + "_data"
+		full_folder_path = "../output/hp_tuning_data/" + optimizer + "_data"
 		final_folder_path = makedirs_advanced(full_folder_path)
 		# if not os.path.exists("./hp_tuning_data/" + optimizer + "_data/"):
 		# 	os.makedirs("./hp_tuning_data/" + optimizer + "_data/")
@@ -204,7 +204,9 @@ class SVM_Model(object):
 			if optimizer in ["DFO","CMA"]:
 				# In thet case that a start point is needed by a solver
 				gamma_init , C_init = self.scale2real(x_initial, bounds_gamma=bounds_gamma, bounds_C=bounds_C)
-				message = message + "Initial point of x: {}  (real values: (gamma = {}, C = {}))".format(x_initial, gamma_init, C_init)
+				message = message + "Initial point of x: {}  (real values: (gamma = {}, C = {}))\n".format(x_initial, gamma_init, C_init)
+				if add_comments is not None:
+					message = message + add_comments
 			file.write(message)
 
 		if optimizer == "DFO":
@@ -263,8 +265,8 @@ def makedirs_advanced(full_folder_path, set_count=0):
 
 if __name__ == "__main__":
 	print("Start...")
-	filename_X = "preprocessed/input.npy"
-	filename_Y = "preprocessed/output.npy"
+	filename_X = "../data/preprocessed/input.npy"
+	filename_Y = "../data/preprocessed/output.npy"
 	# model = NN_Model(filename_X, filename_Y)
 	# print(model.X_train)
 	# print("build model")
@@ -282,9 +284,9 @@ if __name__ == "__main__":
 	obj = SVM_Model(filename_X, filename_Y)
 	# obj.preprocessing(cut = 2000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
 	# obj.preprocessing(cut = 2000, split_rate = [0.8, 0.2]) # For fine-tuning purpose
-	# obj.preprocessing(cut = 1000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
+	obj.preprocessing(cut = 1000, split_rate = [0.7, 0.3]) # For fine-tuning purpose
 	# obj.preprocessing(cut = None, split_rate = [0.9, 0.1]) # Test on hole data set !
-	obj.preprocessing(cut = None, split_rate = [0.8, 0.2]) # Test on hole data set !
+	# obj.preprocessing(cut = None, split_rate = [0.8, 0.2]) # Test on hole data set !
 	
 	# x_initial = None (default setting) gamma ~= 0.000372 (1/n_features), C = 1.0 
 	# x_initial = obj.scale_x([22.6, 31.5], bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C) # 80%, 79%  (dfo_data_lu)
@@ -318,7 +320,7 @@ if __name__ == "__main__":
 
 
 
-	print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
+	# print("Loss: {}".format(obj.EvaluateSVM(x_initial, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C)))
 	# Default setting
 	# print("Loss: {}".format(obj.EvaluateSVM(None, bounds_gamma=BOUNDS_gamma, bounds_C=BOUNDS_C))) 
 

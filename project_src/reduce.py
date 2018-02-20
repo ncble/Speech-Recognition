@@ -41,12 +41,12 @@ def reduce_all(folder, new_folder, max_iter = 100):
 
 if __name__ == '__main__':
     print("Start test data")
-    if not os.path.exists('./data_reduced/train/audio'):
-        os.makedirs('./data_reduced/train/audio')
-    reduce_all('./data/train/audio/', './data_reduced/train/audio', max_iter = np.infty)
+    if not os.path.exists('../data_reduced/train/audio'):
+        os.makedirs('../data_reduced/train/audio')
+    reduce_all('../data/train/audio/', '../data_reduced/train/audio', max_iter = np.infty)
 
     print("Start test data")
-    if not os.path.exists('./data_reduced/test/audio'):
-        os.makedirs('./data_reduced/test/audio')
-    reduce_all('./data/test/audio/', './data_reduced/test/audio', max_iter = np.infty)
+    if not os.path.exists('../data_reduced/test/audio'):
+        os.makedirs('../data_reduced/test/audio')
+    reduce_all('../data/test/audio/', '../data_reduced/test/audio', max_iter = np.infty)
     

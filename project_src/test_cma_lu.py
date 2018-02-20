@@ -38,8 +38,8 @@ def slope(x):
 	# return np.sum(tengent*x, axis = 1)
 	return np.sum(tengent*x)
 if __name__ == "__main__":
-	filename_X = "preprocessed/input.npy"
-	filename_Y = "preprocessed/output.npy"
+	filename_X = "../data/preprocessed/input.npy"
+	filename_Y = "../data/preprocessed/output.npy"
 	data_X = np.load(filename_X)
 	sample = len(data_X)
 	data_X = data_X.reshape(sample, -1)
