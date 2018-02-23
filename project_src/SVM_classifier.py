@@ -1,6 +1,7 @@
 # _*_ coding: utf-8 _*_
 import os
 import numpy as np
+from utile import *
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
@@ -16,6 +17,7 @@ from sklearn.preprocessing import normalize
 from PRS import PRS
 from skopt import gp_minimize
 from wrapper import Objective_Function
+
 
 try:
 	from DFO_src import dfo_tr
@@ -234,34 +236,6 @@ class SVM_Model(object):
 			file.write(message)
 		return
 
-def makedirs_advanced(full_folder_path, set_count=0):
-	
-	"""
-	The command 'os.path.basename' is not consistent in different version of python. That's why I use 'split' here.
-	"""
-
-	# folder_name = os.path.basename(full_folder_path) #"./test_folder/1/2/3" => 3, "./test_folder/1/2/3/" => ""
-	
-	folder_name = full_folder_path.split("/")[-1]
-	prefixe = "/".join(full_folder_path.split("/")[:-1])
-	# print(full_folder_path.split("/"))
-	if len(folder_name) == 0:
-		print("Warning: Folder path should look like '/XXX/Name' not '/XXX/Name/'.")
-		folder_name = full_folder_path.split("/")[-2]
-		prefixe = "/".join(full_folder_path.split("/")[:-2])
-	
-	count = set_count
-	
-	current_folder_path = os.path.join(prefixe, folder_name+"_{}".format(count))
-
-	while os.path.exists(current_folder_path):
-		count += 1
-		current_folder_name = folder_name+"_{}".format(count)
-		current_folder_path = os.path.join(prefixe, current_folder_name)
-	os.makedirs(current_folder_path)
-
-
-	return current_folder_path
 
 if __name__ == "__main__":
 	print("Start...")
